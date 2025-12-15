@@ -54,15 +54,15 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 217 91% 60%;
 
-    /* Grade colors */
-    --grade-a: 142 76% 45%;
-    --grade-b: 173 80% 40%;
-    --grade-c: 199 89% 48%;
-    --grade-d: 38 92% 50%;
-    --grade-e: 25 95% 53%;
-    --grade-f: 0 84% 60%;
-    --grade-g: 0 74% 42%;
-    --grade-u: 0 0% 40%;
+    /* Grade colors (1-9 scale) */
+    --grade-1: 142 76% 45%;
+    --grade-2: 160 84% 39%;
+    --grade-3: 173 80% 40%;
+    --grade-4: 199 89% 48%;
+    --grade-5: 38 92% 50%;
+    --grade-6: 25 95% 53%;
+    --grade-7: 15 90% 55%;
+    --grade-9: 0 84% 60%;
   }
 
   .dark {
@@ -98,14 +98,14 @@
     @apply inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold min-w-[28px];
   }
 
-  .grade-A { @apply bg-[hsl(var(--grade-a))] text-white; }
-  .grade-B { @apply bg-[hsl(var(--grade-b))] text-white; }
-  .grade-C { @apply bg-[hsl(var(--grade-c))] text-white; }
-  .grade-D { @apply bg-[hsl(var(--grade-d))] text-black; }
-  .grade-E { @apply bg-[hsl(var(--grade-e))] text-white; }
-  .grade-F { @apply bg-[hsl(var(--grade-f))] text-white; }
-  .grade-G { @apply bg-[hsl(var(--grade-g))] text-white; }
-  .grade-U { @apply bg-[hsl(var(--grade-u))] text-white; }
+  .grade-1 { @apply bg-[hsl(var(--grade-1))] text-white; }
+  .grade-2 { @apply bg-[hsl(var(--grade-2))] text-white; }
+  .grade-3 { @apply bg-[hsl(var(--grade-3))] text-white; }
+  .grade-4 { @apply bg-[hsl(var(--grade-4))] text-white; }
+  .grade-5 { @apply bg-[hsl(var(--grade-5))] text-black; }
+  .grade-6 { @apply bg-[hsl(var(--grade-6))] text-white; }
+  .grade-7 { @apply bg-[hsl(var(--grade-7))] text-white; }
+  .grade-9 { @apply bg-[hsl(var(--grade-9))] text-white; }
 }
 
 @layer utilities {

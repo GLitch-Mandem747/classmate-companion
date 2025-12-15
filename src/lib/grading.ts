@@ -1,21 +1,19 @@
-// 8-point grading scale (A* to U)
+// 9-point grading scale (1 to 9)
 export interface GradeScale {
   grade: string;
   minScore: number;
   maxScore: number;
-  points: number;
 }
 
 export const GRADE_SCALE: GradeScale[] = [
-  { grade: 'A*', minScore: 90, maxScore: 100, points: 8 },
-  { grade: 'A', minScore: 80, maxScore: 89, points: 7 },
-  { grade: 'B', minScore: 70, maxScore: 79, points: 6 },
-  { grade: 'C', minScore: 60, maxScore: 69, points: 5 },
-  { grade: 'D', minScore: 50, maxScore: 59, points: 4 },
-  { grade: 'E', minScore: 40, maxScore: 49, points: 3 },
-  { grade: 'F', minScore: 30, maxScore: 39, points: 2 },
-  { grade: 'G', minScore: 20, maxScore: 29, points: 1 },
-  { grade: 'U', minScore: 0, maxScore: 19, points: 0 },
+  { grade: '1', minScore: 85, maxScore: 100 },
+  { grade: '2', minScore: 75, maxScore: 84 },
+  { grade: '3', minScore: 70, maxScore: 74 },
+  { grade: '4', minScore: 65, maxScore: 69 },
+  { grade: '5', minScore: 60, maxScore: 64 },
+  { grade: '6', minScore: 55, maxScore: 59 },
+  { grade: '7', minScore: 50, maxScore: 54 },
+  { grade: '9', minScore: 0, maxScore: 49 },
 ];
 
 export interface StudentData {
@@ -62,23 +60,21 @@ export function getGrade(score: number): string {
 }
 
 export function getGradePoints(score: number): number {
-  const gradeEntry = GRADE_SCALE.find(
-    (g) => score >= g.minScore && score <= g.maxScore
-  );
-  return gradeEntry?.points || 0;
+  const grade = getGrade(score);
+  // For this scale, lower grade number = better, so invert for points
+  return grade === '9' ? 0 : (10 - parseInt(grade));
 }
 
 export function getGradeClass(grade: string): string {
-  const baseGrade = grade.replace('*', '').toUpperCase();
-  switch (baseGrade) {
-    case 'A': return 'grade-A';
-    case 'B': return 'grade-B';
-    case 'C': return 'grade-C';
-    case 'D': return 'grade-D';
-    case 'E': return 'grade-E';
-    case 'F': return 'grade-F';
-    case 'G': return 'grade-G';
-    default: return 'grade-U';
+  switch (grade) {
+    case '1': return 'grade-1';
+    case '2': return 'grade-2';
+    case '3': return 'grade-3';
+    case '4': return 'grade-4';
+    case '5': return 'grade-5';
+    case '6': return 'grade-6';
+    case '7': return 'grade-7';
+    default: return 'grade-9';
   }
 }
 

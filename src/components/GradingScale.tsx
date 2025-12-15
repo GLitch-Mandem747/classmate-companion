@@ -8,14 +8,14 @@ export function GradingScale() {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Info className="h-4 w-4 text-primary" />
-          8-Point Grading Scale
+          Grading Scale
         </CardTitle>
         <CardDescription>
-          Grades are awarded on an 8-point scale as follows
+          Grades are awarded on a 1-9 scale (1 = best, 9 = lowest)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
           {GRADE_SCALE.map((g) => (
             <div 
               key={g.grade}
@@ -26,9 +26,6 @@ export function GradingScale() {
               </span>
               <span className="text-xs text-muted-foreground">
                 {g.minScore}-{g.maxScore}
-              </span>
-              <span className="text-xs text-primary font-medium">
-                {g.points} pts
               </span>
             </div>
           ))}
