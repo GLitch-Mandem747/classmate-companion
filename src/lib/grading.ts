@@ -87,20 +87,22 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
     const compulsoryTotal = student.math + student.english + student.biology + science;
     const compulsoryAverage = compulsoryTotal / 4;
     
-    // Overall total (all subjects)
-    const allSubjects = [
-      student.english,
-      student.biology,
-      student.math,
-      student.chemistry,
-      student.physics,
-      student.dAndT,
-      student.history,
-      student.re,
-      student.civic,
+    // Non-compulsory subjects: D and T, History, R.E, Civic
+    const nonCompulsory = [
+      { name: 'dAndT', score: student.dAndT },
+      { name: 'history', score: student.history },
+      { name: 're', score: student.re },
+      { name: 'civic', score: student.civic },
     ];
-    const overallTotal = allSubjects.reduce((sum, score) => sum + score, 0);
-    const overallAverage = overallTotal / allSubjects.length;
+    
+    // Sort by score descending and take top 2
+    nonCompulsory.sort((a, b) => b.score - a.score);
+    const topTwoNonCompulsory = nonCompulsory.slice(0, 2);
+    const topTwoTotal = topTwoNonCompulsory.reduce((sum, subj) => sum + subj.score, 0);
+    
+    // Overall total = Compulsory 4 + Top 2 non-compulsory
+    const overallTotal = compulsoryTotal + topTwoTotal;
+    const overallAverage = overallTotal / 6;
     
     return {
       ...student,
