@@ -149,7 +149,6 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
       <tr>
         <th>Grade</th>
         <th>Score Range</th>
-        <th>Points</th>
       </tr>
     </thead>
     <tbody>
@@ -158,7 +157,6 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
         <tr>
           <td>${g.grade}</td>
           <td>${g.minScore} - ${g.maxScore}</td>
-          <td>${g.points}</td>
         </tr>
       `
       ).join('')}

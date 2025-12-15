@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StudentData, parseTableData, parseCSV } from '@/lib/grading';
 import { toast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
+import mammoth from 'mammoth';
 
 interface DataImportProps {
   onImport: (students: StudentData[]) => void;
@@ -18,19 +20,67 @@ const SAMPLE_DATA = `| Name | English | Biology | Math | Chemistry | Physics | D
 | Sarah Williams | 88 | 75 | 80 | 78 | 82 | 70 | 85 | 80 | 75 |
 | David Brown | 45 | 50 | 55 | 48 | 52 | 40 | 45 | 42 | 48 |`;
 
+function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+  
+  const students: StudentData[] = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+    // Skip header row
+    if (i === 0 && row[0]?.toString().toLowerCase().includes('name')) {
+      continue;
+    }
+    
+    if (row.length >= 10) {
+      students.push({
+        name: row[0]?.toString() || 'Unknown',
+        english: parseFloat(row[1]?.toString()) || 0,
+        biology: parseFloat(row[2]?.toString()) || 0,
+        math: parseFloat(row[3]?.toString()) || 0,
+        chemistry: parseFloat(row[4]?.toString()) || 0,
+        physics: parseFloat(row[5]?.toString()) || 0,
+        dAndT: parseFloat(row[6]?.toString()) || 0,
+        history: parseFloat(row[7]?.toString()) || 0,
+        re: parseFloat(row[8]?.toString()) || 0,
+        civic: parseFloat(row[9]?.toString()) || 0,
+      });
+    }
+  }
+  
+  return students;
+}
+
 export function DataImport({ onImport }: DataImportProps) {
   const [pasteData, setPasteData] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleFileUpload = useCallback((file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      let students: StudentData[];
+  const handleFileUpload = useCallback(async (file: File) => {
+    setIsLoading(true);
+    
+    try {
+      const fileName = file.name.toLowerCase();
+      let students: StudentData[] = [];
       
-      if (file.name.endsWith('.csv')) {
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // Handle Excel files
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        students = parseExcelData(workbook);
+      } else if (fileName.endsWith('.docx')) {
+        // Handle Word files
+        const buffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+        students = parseTableData(result.value);
+      } else if (fileName.endsWith('.csv')) {
+        const text = await file.text();
         students = parseCSV(text);
       } else {
+        // Handle plain text files
+        const text = await file.text();
         students = parseTableData(text);
       }
       
@@ -47,8 +97,15 @@ export function DataImport({ onImport }: DataImportProps) {
           variant: 'destructive',
         });
       }
-    };
-    reader.readAsText(file);
+    } catch (error) {
+      toast({
+        title: 'Import Error',
+        description: 'Failed to read the file. Please check the format.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [onImport]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -129,21 +186,22 @@ export function DataImport({ onImport }: DataImportProps) {
             >
               <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-foreground font-medium mb-2">
-                Drag & drop your file here
+                {isLoading ? 'Processing file...' : 'Drag & drop your file here'}
               </p>
               <p className="text-muted-foreground text-sm mb-4">
-                Supports CSV, TXT files with pipe or tab separated values
+                Supports Excel (.xlsx, .xls), Word (.docx), CSV, and TXT files
               </p>
               <input
                 type="file"
-                accept=".csv,.txt"
+                accept=".csv,.txt,.xlsx,.xls,.docx"
                 onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
                 className="hidden"
                 id="file-upload"
+                disabled={isLoading}
               />
               <label htmlFor="file-upload">
-                <Button variant="secondary" className="cursor-pointer" asChild>
-                  <span>Choose File</span>
+                <Button variant="secondary" className="cursor-pointer" asChild disabled={isLoading}>
+                  <span>{isLoading ? 'Processing...' : 'Choose File'}</span>
                 </Button>
               </label>
             </div>
