@@ -35,7 +35,7 @@ export interface StudentResult extends StudentData {
   compulsoryTotal: number;
   compulsoryAverage: number;
   overallTotal: number;
-  overallAverage: number;
+  overallGradePoints: number; // Sum of grade numbers (lower is better)
   rank: number;
   grades: {
     english: string;
@@ -48,7 +48,6 @@ export interface StudentResult extends StudentData {
     history: string;
     re: string;
     civic: string;
-    overall: string;
   };
 }
 
@@ -87,22 +86,40 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
     const compulsoryTotal = student.math + student.english + student.biology + science;
     const compulsoryAverage = compulsoryTotal / 4;
     
-    // Non-compulsory subjects: D and T, History, R.E, Civic
-    const nonCompulsory = [
+    // Get grades for compulsory 4
+    const scienceGrade = parseInt(getGrade(science)) || 9;
+    const biologyGrade = parseInt(getGrade(student.biology)) || 9;
+    const mathGrade = parseInt(getGrade(student.math)) || 9;
+    const englishGrade = parseInt(getGrade(student.english)) || 9;
+    
+    // Get grades for optional subjects
+    const optionalGrades = [
+      { name: 'dAndT', grade: parseInt(getGrade(student.dAndT)) || 9 },
+      { name: 'history', grade: parseInt(getGrade(student.history)) || 9 },
+      { name: 're', grade: parseInt(getGrade(student.re)) || 9 },
+      { name: 'civic', grade: parseInt(getGrade(student.civic)) || 9 },
+    ];
+    
+    // Sort by grade ascending (lower grade number = better) and take top 2
+    optionalGrades.sort((a, b) => a.grade - b.grade);
+    const topTwoOptional = optionalGrades.slice(0, 2);
+    const topTwoGradeSum = topTwoOptional.reduce((sum, subj) => sum + subj.grade, 0);
+    
+    // Overall grade points = sum of compulsory 4 grades + top 2 optional grades
+    // Lower is better (e.g., 6 points = all 1s is excellent)
+    const overallGradePoints = scienceGrade + biologyGrade + mathGrade + englishGrade + topTwoGradeSum;
+    
+    // Overall total for raw scores (compulsory + top 2 optional by score)
+    const nonCompulsoryByScore = [
       { name: 'dAndT', score: student.dAndT },
       { name: 'history', score: student.history },
       { name: 're', score: student.re },
       { name: 'civic', score: student.civic },
     ];
-    
-    // Sort by score descending and take top 2
-    nonCompulsory.sort((a, b) => b.score - a.score);
-    const topTwoNonCompulsory = nonCompulsory.slice(0, 2);
-    const topTwoTotal = topTwoNonCompulsory.reduce((sum, subj) => sum + subj.score, 0);
-    
-    // Overall total = Compulsory 4 + Top 2 non-compulsory
-    const overallTotal = compulsoryTotal + topTwoTotal;
-    const overallAverage = overallTotal / 6;
+    nonCompulsoryByScore.sort((a, b) => b.score - a.score);
+    const topTwoByScore = nonCompulsoryByScore.slice(0, 2);
+    const topTwoScoreTotal = topTwoByScore.reduce((sum, subj) => sum + subj.score, 0);
+    const overallTotal = compulsoryTotal + topTwoScoreTotal;
     
     return {
       ...student,
@@ -111,7 +128,7 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
       compulsoryTotal: Math.round(compulsoryTotal * 10) / 10,
       compulsoryAverage: Math.round(compulsoryAverage * 10) / 10,
       overallTotal: Math.round(overallTotal * 10) / 10,
-      overallAverage: Math.round(overallAverage * 10) / 10,
+      overallGradePoints,
       rank: 0,
       grades: {
         english: getGrade(student.english),
@@ -124,13 +141,12 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
         history: getGrade(student.history),
         re: getGrade(student.re),
         civic: getGrade(student.civic),
-        overall: getGrade(overallAverage),
       },
     };
   });
   
-  // Sort by overall average (lowest to highest) and assign ranks
-  results.sort((a, b) => a.overallAverage - b.overallAverage);
+  // Sort by overall grade points (lowest to highest - lower is better) and assign ranks
+  results.sort((a, b) => a.overallGradePoints - b.overallGradePoints);
   results.forEach((result, index) => {
     result.rank = index + 1;
   });

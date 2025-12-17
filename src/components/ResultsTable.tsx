@@ -29,8 +29,8 @@ export function ResultsTable({ results }: ResultsTableProps) {
   }
 
   const totalStudents = results.length;
-  const topStudent = results[results.length - 1];
-  const averageScore = results.reduce((sum, r) => sum + r.overallAverage, 0) / totalStudents;
+  const topStudent = results[0]; // Lowest grade points = best (rank 1)
+  const averageGradePoints = results.reduce((sum, r) => sum + r.overallGradePoints, 0) / totalStudents;
 
   return (
     <Card className="animate-fade-in">
@@ -40,15 +40,15 @@ export function ResultsTable({ results }: ResultsTableProps) {
           Class Results
         </CardTitle>
         <CardDescription>
-          {totalStudents} students • Ranked from lowest (1) to highest ({totalStudents})
+          {totalStudents} students • Ranked by grade points (lower = better)
         </CardDescription>
         <div className="flex gap-4 mt-4 text-sm">
           <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg">
             <Trophy className="h-4 w-4 text-warning" />
-            <span>Top: <strong>{topStudent.name}</strong> ({topStudent.overallAverage}%)</span>
+            <span>Top: <strong>{topStudent.name}</strong> ({topStudent.overallGradePoints} pts)</span>
           </div>
           <div className="bg-secondary px-3 py-2 rounded-lg">
-            Class Average: <strong>{averageScore.toFixed(1)}%</strong>
+            Class Avg: <strong>{averageGradePoints.toFixed(1)} pts</strong>
           </div>
         </div>
       </CardHeader>
@@ -70,7 +70,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                 <TableHead className="text-center">R.E</TableHead>
                 <TableHead className="text-center">Civic</TableHead>
                 <TableHead className="text-center bg-primary/20">Comp. Avg</TableHead>
-                <TableHead className="text-center bg-primary/20">Overall</TableHead>
+                <TableHead className="text-center bg-primary/20">Grade Pts</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -149,10 +149,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                     {student.compulsoryAverage}%
                   </TableCell>
                   <TableCell className="text-center bg-primary/5">
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="font-bold">{student.overallAverage}%</span>
-                      <GradeBadge grade={student.grades.overall} />
-                    </div>
+                    <span className="font-bold text-lg">{student.overallGradePoints}</span>
                   </TableCell>
                 </TableRow>
               ))}
@@ -162,8 +159,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
         </ScrollArea>
         
         <p className="text-xs text-muted-foreground mt-4">
-          * Science is calculated as the average of Physics and Chemistry. 
-          Compulsory subjects: Math, English, Biology, Science.
+          * Science = (Physics + Chemistry) / 2. Grade Points = Sum of grades for compulsory 4 (Math, English, Biology, Science) + top 2 optional subjects. Lower points = better.
         </p>
       </CardContent>
     </Card>

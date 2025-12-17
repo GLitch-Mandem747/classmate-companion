@@ -28,8 +28,7 @@ export function exportToExcel(students: StudentResult[], filename: string = 'stu
     'Compulsory Total',
     'Compulsory Average',
     'Overall Total',
-    'Overall Average',
-    'Overall Grade',
+    'Grade Points',
   ];
 
   const rows = students.map((s) => [
@@ -58,8 +57,7 @@ export function exportToExcel(students: StudentResult[], filename: string = 'stu
     s.compulsoryTotal,
     s.compulsoryAverage,
     s.overallTotal,
-    s.overallAverage,
-    s.grades.overall,
+    s.overallGradePoints,
   ]);
 
   const csvContent = [
@@ -113,8 +111,7 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
         <th>History</th>
         <th>R.E</th>
         <th>Civic</th>
-        <th>Average</th>
-        <th>Grade</th>
+        <th>Grade Pts</th>
       </tr>
     </thead>
     <tbody>
@@ -134,8 +131,7 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
           <td>${s.history} (${s.grades.history})</td>
           <td>${s.re} (${s.grades.re})</td>
           <td>${s.civic} (${s.grades.civic})</td>
-          <td>${s.overallAverage}</td>
-          <td>${s.grades.overall}</td>
+          <td>${s.overallGradePoints}</td>
         </tr>
       `
         )
@@ -186,11 +182,10 @@ export function generateReportCardHTML(student: StudentResult, schoolName: strin
       <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
         <div>
           <p><strong>Student Name:</strong> ${student.name}</p>
-          <p><strong>Class Rank:</strong> ${student.rank} of ${student.rank}</p>
+          <p><strong>Class Rank:</strong> ${student.rank}</p>
         </div>
         <div>
-          <p><strong>Overall Grade:</strong> ${student.grades.overall}</p>
-          <p><strong>Average Score:</strong> ${student.overallAverage}%</p>
+          <p><strong>Grade Points:</strong> ${student.overallGradePoints}</p>
         </div>
       </div>
       
@@ -271,8 +266,8 @@ export function generateReportCardHTML(student: StudentResult, schoolName: strin
             <td style="border: 1px solid #333; padding: 10px; text-align: center;" colspan="3"><strong>${student.compulsoryAverage}%</strong></td>
           </tr>
           <tr style="background: #1e3a5f; color: white;">
-            <td style="border: 1px solid #333; padding: 10px;"><strong>OVERALL AVERAGE</strong></td>
-            <td style="border: 1px solid #333; padding: 10px; text-align: center;" colspan="3"><strong>${student.overallAverage}% (${student.grades.overall})</strong></td>
+            <td style="border: 1px solid #333; padding: 10px;"><strong>OVERALL GRADE POINTS</strong></td>
+            <td style="border: 1px solid #333; padding: 10px; text-align: center;" colspan="3"><strong>${student.overallGradePoints} points (lower is better)</strong></td>
           </tr>
         </tfoot>
       </table>
