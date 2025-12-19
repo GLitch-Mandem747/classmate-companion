@@ -230,160 +230,166 @@ export function generateReportCardHTML(
   const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
 
   const getScore = (test: StudentResult | null, subject: keyof StudentResult): string => {
-    if (!test) return '-';
+    if (!test) return '';
     const value = test[subject];
-    return typeof value === 'number' ? String(value) : '-';
+    return typeof value === 'number' ? String(value) : '';
   };
 
   return `
-    <div style="page-break-after: always; padding: 30px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
+    <div style="page-break-after: always; padding: 20px 40px; font-family: 'Times New Roman', Times, serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
       <!-- School Header -->
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h1 style="margin: 0; font-size: 18px; font-weight: bold;">${schoolName.toUpperCase()}</h1>
-        <p style="margin: 5px 0; font-size: 11px;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
-        <p style="margin: 5px 0; font-size: 11px;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
-        <p style="margin: 5px 0; font-size: 10px;">P. O. BOX 110214, KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        <p style="margin: 5px 0; font-size: 10px;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com</p>
-        <h2 style="margin: 15px 0 10px 0; font-size: 16px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 8px 0;">SCHOOL REPORT</h2>
+      <div style="text-align: center; margin-bottom: 10px;">
+        <h1 style="margin: 0; font-size: 16px; font-weight: bold; text-decoration: underline;">${schoolName.toUpperCase()}</h1>
+        <p style="margin: 3px 0; font-size: 12px; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
+        <p style="margin: 3px 0; font-size: 12px; font-weight: bold; text-decoration: underline;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
+        <p style="margin: 3px 0; font-size: 10px;">P. O. BOX 110214, KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+        <p style="margin: 3px 0; font-size: 9px;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com</p>
       </div>
       
+      <!-- School Report Header -->
+      <h2 style="text-align: center; margin: 15px 0 10px 0; font-size: 14px; font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 6px 0;">SCHOOL REPORT</h2>
+      
       <!-- Student Info -->
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px;">
         <tr>
-          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>STUDENT NAME</strong></td>
-          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>CLASS</strong></td>
-          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>ENTRY RESULTS</strong></td>
+          <td style="border: 1px solid #000; padding: 6px; font-weight: bold; background: #f5f5f5;">STUDENT NAME</td>
+          <td style="border: 1px solid #000; padding: 6px; font-weight: bold; background: #f5f5f5;">CLASS</td>
+          <td style="border: 1px solid #000; padding: 6px; font-weight: bold; background: #f5f5f5;">ENTRY RESULTS</td>
         </tr>
         <tr>
-          <td style="border: 1px solid #333; padding: 8px;">${student.name}</td>
-          <td style="border: 1px solid #333; padding: 8px;">${className}</td>
-          <td style="border: 1px solid #333; padding: 8px;">${gradePoints}</td>
+          <td style="border: 1px solid #000; padding: 6px;">${student.name.toUpperCase()}</td>
+          <td style="border: 1px solid #000; padding: 6px;">${className}</td>
+          <td style="border: 1px solid #000; padding: 6px;"></td>
         </tr>
       </table>
       
       <!-- Term Header -->
-      <h3 style="text-align: center; margin: 15px 0; font-size: 14px; text-decoration: underline;">${term.toUpperCase()}</h3>
+      <h3 style="text-align: center; margin: 15px 0 10px 0; font-size: 13px; font-weight: bold; text-decoration: underline;">${term.toUpperCase()}</h3>
       
       <!-- Subjects Table -->
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11px;">
         <thead>
-          <tr style="background: #f0f0f0;">
-            <th style="border: 1px solid #333; padding: 8px; text-align: left;">SUBJECTS</th>
-            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">TEST ONE</th>
-            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">TEST TWO</th>
-            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 100px;">END OF TERM</th>
+          <tr style="background: #f5f5f5;">
+            <th style="border: 1px solid #000; padding: 6px; text-align: left; font-weight: bold;">SUBJECTS</th>
+            <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 80px; font-weight: bold;">TEST ONE</th>
+            <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 80px; font-weight: bold;">TEST TWO</th>
+            <th style="border: 1px solid #000; padding: 6px; text-align: center; width: 100px; font-weight: bold;">END OF TERM</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">ENGLISH</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'english')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'english')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'english')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">ENGLISH</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'english')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'english')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'english')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">MATHEMATICS</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'math')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'math')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'math')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">MATHEMATICS</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'math')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'math')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'math')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">BIOLOGY</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'biology')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'biology')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'biology')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">BIOLOGY</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'biology')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'biology')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'biology')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">SCIENCE</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'science')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'science')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'science')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">SCIENCE</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'science')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'science')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'science')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">CIVIC EDUCATION</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'civic')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'civic')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'civic')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">CIVIC EDUCATION</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'civic')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'civic')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'civic')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">RELIGIOUS EDUCATION</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 're')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 're')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 're')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">RELIGIOUS EDUCATION</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 're')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 're')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 're')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">HISTORY</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'history')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'history')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'history')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">HISTORY</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'history')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'history')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'history')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">DESIGN & TECHNOLOGY</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'dAndT')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'dAndT')}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'dAndT')}</td>
+            <td style="border: 1px solid #000; padding: 6px;">DESIGN & TECHNOLOGY</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test1, 'dAndT')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test2, 'dAndT')}</td>
+            <td style="border: 1px solid #000; padding: 6px; text-align: center;">${getScore(test3, 'dAndT')}</td>
           </tr>
         </tbody>
       </table>
       
       <!-- Grade Points and Position -->
-      <p style="margin: 10px 0; font-size: 12px;"><strong>POINTS IN BEST SIX INCLUDING ENGLISH AND MATHEMATICS:</strong> ${gradePoints}</p>
-      <p style="margin: 10px 0; font-size: 12px;"><strong>POSITION IN CLASS:</strong> ${rank} / ${totalStudents}</p>
+      <p style="margin: 8px 0; font-size: 11px;"><strong>POINTS IN BEST SIX INCLUDING ENGLISH AND MATHEMATICS:</strong> ${gradePoints}</p>
+      <p style="margin: 8px 0; font-size: 11px;"><strong>POSITION IN CLASS:</strong> ${rank} / ${totalStudents}</p>
       
       <!-- Teacher's Remarks -->
-      <div style="margin: 20px 0; border: 1px solid #333; padding: 10px;">
-        <h4 style="margin: 0 0 10px 0; font-size: 12px; text-decoration: underline;">CLASS TEACHER'S REMARKS</h4>
-        <p style="margin: 5px 0; font-size: 11px;"><strong>${teacherName}</strong></p>
-        <div style="min-height: 60px; border-bottom: 1px dotted #999; margin-top: 10px;"></div>
+      <div style="margin: 15px 0; border: 1px solid #000; padding: 10px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 11px; font-weight: bold; text-decoration: underline;">CLASS TEACHER'S REMARKS</h4>
+        <p style="margin: 5px 0; font-size: 11px; font-weight: bold;">${teacherName.toUpperCase()}</p>
+        <div style="min-height: 50px; border-bottom: 1px dotted #666; margin-top: 8px;"></div>
       </div>
       
       <!-- Grading Scale -->
-      <div style="margin: 20px 0;">
-        <p style="font-size: 10px; margin-bottom: 5px;"><strong>Grades are awarded on an 8 point grade scale as follows</strong></p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+      <div style="margin: 15px 0;">
+        <p style="font-size: 10px; margin-bottom: 5px; font-weight: bold; text-decoration: underline;">Grades are awarded on an 8 point grade scale as follows</p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <tr>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Grade</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">1</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">2</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">3</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">4</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">5</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">6</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">7</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">9</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center; font-weight: bold; background: #f5f5f5;">Grade</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">1</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">2</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">3</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">4</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">5</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">6</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">7</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">8</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Score</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">85-100</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">75-84</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">70-74</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">65-69</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">60-64</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">55-59</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">50-54</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">0-49</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center; font-weight: bold; background: #f5f5f5;">Score</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">85-100</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">75-84</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">70-74</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">65-69</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">60-64</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">55-59</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">50-54</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">0-49</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Description</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Distinction</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Distinction</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Merit</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Merit</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Credit</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Credit</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Pass</td>
-            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Fail</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center; font-weight: bold; background: #f5f5f5;">Description</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Distinction</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Distinction</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Merit</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Merit</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Credit</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Credit</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Pass</td>
+            <td style="border: 1px solid #000; padding: 3px; text-align: center;">Fail</td>
           </tr>
         </table>
       </div>
       
       <!-- Signatures -->
-      <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px;">
         <div style="text-align: center;">
-          <p style="border-top: 1px solid #333; padding-top: 5px; width: 150px; margin: 0 auto;">PRINCIPAL</p>
+          <div style="border-top: 1px solid #000; width: 120px; padding-top: 5px;">
+            <p style="margin: 0; font-size: 10px; font-weight: bold;">PRINCIPAL</p>
+          </div>
         </div>
         <div style="text-align: center;">
-          <p style="border: 2px solid #333; padding: 20px 40px; margin: 0;">SCHOOL STAMP</p>
+          <div style="border: 2px solid #000; padding: 15px 30px;">
+            <p style="margin: 0; font-size: 10px; font-weight: bold;">SCHOOL STAMP</p>
+          </div>
         </div>
       </div>
     </div>
