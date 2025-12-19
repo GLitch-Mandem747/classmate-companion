@@ -5,19 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { StudentResult } from '@/lib/grading';
-import { exportToExcel, exportToWord, exportReportCards } from '@/lib/export';
+import { exportToExcel, exportToWord, exportReportCards, TestData } from '@/lib/export';
 import { toast } from '@/hooks/use-toast';
 
 interface ExportPanelProps {
-  results: StudentResult[];
+  tests: [TestData | null, TestData | null, TestData | null];
+  currentResults: StudentResult[];
 }
 
-export function ExportPanel({ results }: ExportPanelProps) {
-  const [schoolName, setSchoolName] = useState('');
-  const [term, setTerm] = useState('Term 1, 2024');
+export function ExportPanel({ tests, currentResults }: ExportPanelProps) {
+  const [schoolName, setSchoolName] = useState("ST. DOMINIC'S BOYS SECONDARY SCHOOL");
+  const [term, setTerm] = useState('Term Three – 2025');
+  const [className, setClassName] = useState('G11 – MARTYRS');
+  const [teacherName, setTeacherName] = useState('');
+
+  const allTestsUploaded = tests[0] !== null && tests[1] !== null && tests[2] !== null;
 
   const handleExportExcel = () => {
-    exportToExcel(results);
+    exportToExcel(currentResults);
     toast({
       title: 'Export Complete',
       description: 'Results exported to Excel (CSV) file.',
@@ -25,7 +30,7 @@ export function ExportPanel({ results }: ExportPanelProps) {
   };
 
   const handleExportWord = () => {
-    exportToWord(results, schoolName || 'School Name');
+    exportToWord(currentResults, schoolName || 'School Name');
     toast({
       title: 'Export Complete',
       description: 'Results exported to Word file.',
@@ -42,14 +47,28 @@ export function ExportPanel({ results }: ExportPanelProps) {
       return;
     }
     
-    exportReportCards(results, schoolName, term);
+    if (!teacherName.trim()) {
+      toast({
+        title: 'Teacher Name Required',
+        description: 'Please enter the class teacher\'s name.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    exportReportCards(tests, schoolName, term, className, teacherName);
+    
+    const totalStudents = new Set(
+      tests.flatMap(t => t?.results.map(r => r.name) || [])
+    ).size;
+    
     toast({
       title: 'Report Cards Generated',
-      description: `Generated ${results.length} report cards.`,
+      description: `Generated ${totalStudents} report cards.`,
     });
   };
 
-  if (results.length === 0) {
+  if (currentResults.length === 0) {
     return null;
   }
 
@@ -61,32 +80,15 @@ export function ExportPanel({ results }: ExportPanelProps) {
           Export & Report Cards
         </CardTitle>
         <CardDescription>
-          Export results or generate individual report cards
+          {allTestsUploaded 
+            ? 'Export results or generate individual report cards'
+            : 'Export current test results. Report cards will be available after all 3 tests are uploaded.'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="schoolName">School Name</Label>
-            <Input
-              id="schoolName"
-              placeholder="Enter school name"
-              value={schoolName}
-              onChange={(e) => setSchoolName(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="term">Term / Semester</Label>
-            <Input
-              id="term"
-              placeholder="e.g., Term 1, 2024"
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
+        {/* Quick Export for current test */}
+        <div className="grid gap-3 sm:grid-cols-2">
           <Button 
             onClick={handleExportExcel}
             variant="secondary"
@@ -104,20 +106,77 @@ export function ExportPanel({ results }: ExportPanelProps) {
             <FileText className="h-4 w-4 mr-2" />
             Export to Word
           </Button>
-          
-          <Button 
-            onClick={handleGenerateReportCards}
-            className="w-full"
-          >
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Generate Report Cards
-          </Button>
         </div>
+
+        {/* Report Cards Section - Only show when all tests uploaded */}
+        {allTestsUploaded && (
+          <>
+            <div className="border-t pt-6">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" />
+                Generate Report Cards
+              </h4>
+              
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="schoolName">School Name</Label>
+                  <Input
+                    id="schoolName"
+                    placeholder="Enter school name"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="term">Term / Semester</Label>
+                  <Input
+                    id="term"
+                    placeholder="e.g., Term Three – 2025"
+                    value={term}
+                    onChange={(e) => setTerm(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="className">Class Name</Label>
+                  <Input
+                    id="className"
+                    placeholder="e.g., G11 – MARTYRS"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="teacherName">Class Teacher's Name</Label>
+                  <Input
+                    id="teacherName"
+                    placeholder="e.g., MR. SINYANGWE"
+                    value={teacherName}
+                    onChange={(e) => setTeacherName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleGenerateReportCards}
+                className="w-full mt-4"
+              >
+                <ClipboardList className="h-4 w-4 mr-2" />
+                Generate Report Cards
+              </Button>
+              
+              <p className="text-xs text-muted-foreground mt-3">
+                Report cards will be generated as a Word document with one card per student, 
+                including all 3 test scores, ready for printing.
+              </p>
+            </div>
+          </>
+        )}
         
-        <p className="text-xs text-muted-foreground">
-          Report cards will be generated as a Word document with one card per student, 
-          ready for printing. Enter the school name before generating.
-        </p>
+        {!allTestsUploaded && (
+          <p className="text-xs text-muted-foreground border-t pt-4">
+            📋 Upload all 3 tests to enable report card generation with all test scores.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

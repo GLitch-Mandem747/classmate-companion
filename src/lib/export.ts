@@ -1,4 +1,9 @@
-import { StudentResult, GRADE_SCALE } from './grading';
+import { StudentResult, GRADE_SCALE, getGrade } from './grading';
+
+export interface TestData {
+  name: string;
+  results: StudentResult[];
+}
 
 export function exportToExcel(students: StudentResult[], filename: string = 'student_results'): void {
   // Create CSV content (Excel-compatible)
@@ -170,142 +175,262 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
   URL.revokeObjectURL(link.href);
 }
 
-export function generateReportCardHTML(student: StudentResult, schoolName: string, term: string): string {
+interface StudentTestScores {
+  name: string;
+  test1: StudentResult | null;
+  test2: StudentResult | null;
+  test3: StudentResult | null;
+}
+
+function getSubjectScore(result: StudentResult | null, subject: keyof StudentResult): number {
+  if (!result) return 0;
+  const value = result[subject];
+  return typeof value === 'number' ? value : 0;
+}
+
+function calculateFinalGradePoints(test1: StudentResult | null, test2: StudentResult | null, test3: StudentResult | null): number {
+  // Use test3 (End of Term) for final grade calculation
+  const finalTest = test3 || test2 || test1;
+  if (!finalTest) return 0;
+  return finalTest.overallGradePoints;
+}
+
+function calculateFinalRank(students: StudentTestScores[], totalStudents: number): Map<string, number> {
+  const rankMap = new Map<string, number>();
+  
+  // Sort by grade points (lower is better) using test3 results
+  const sorted = [...students].sort((a, b) => {
+    const aPoints = calculateFinalGradePoints(a.test1, a.test2, a.test3);
+    const bPoints = calculateFinalGradePoints(b.test1, b.test2, b.test3);
+    return aPoints - bPoints;
+  });
+  
+  sorted.forEach((student, index) => {
+    rankMap.set(student.name, index + 1);
+  });
+  
+  return rankMap;
+}
+
+export function generateReportCardHTML(
+  student: StudentTestScores,
+  schoolName: string,
+  term: string,
+  className: string,
+  teacherName: string,
+  rank: number,
+  totalStudents: number
+): string {
+  const test1 = student.test1;
+  const test2 = student.test2;
+  const test3 = student.test3;
+  
+  // Use the final test (test3) for grade points calculation
+  const finalTest = test3 || test2 || test1;
+  const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
+
+  const getScore = (test: StudentResult | null, subject: keyof StudentResult): string => {
+    if (!test) return '-';
+    const value = test[subject];
+    return typeof value === 'number' ? String(value) : '-';
+  };
+
   return `
-    <div style="page-break-after: always; padding: 40px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
-      <div style="text-align: center; border-bottom: 2px solid #1e40af; padding-bottom: 20px; margin-bottom: 20px;">
-        <h1 style="margin: 0; color: #1e40af;">${schoolName}</h1>
-        <h2 style="margin: 10px 0; font-weight: normal;">Student Report Card</h2>
-        <p style="margin: 5px 0;">${term}</p>
+    <div style="page-break-after: always; padding: 30px; font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background: white; color: black;">
+      <!-- School Header -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="margin: 0; font-size: 18px; font-weight: bold;">${schoolName.toUpperCase()}</h1>
+        <p style="margin: 5px 0; font-size: 11px;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
+        <p style="margin: 5px 0; font-size: 11px;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
+        <p style="margin: 5px 0; font-size: 10px;">P. O. BOX 110214, KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+        <p style="margin: 5px 0; font-size: 10px;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com</p>
+        <h2 style="margin: 15px 0 10px 0; font-size: 16px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 8px 0;">SCHOOL REPORT</h2>
       </div>
       
-      <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-        <div>
-          <p><strong>Student Name:</strong> ${student.name}</p>
-          <p><strong>Class Rank:</strong> ${student.rank}</p>
-        </div>
-        <div>
-          <p><strong>Grade Points:</strong> ${student.overallGradePoints}</p>
-        </div>
-      </div>
+      <!-- Student Info -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+        <tr>
+          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>STUDENT NAME</strong></td>
+          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>CLASS</strong></td>
+          <td style="border: 1px solid #333; padding: 8px; width: 33%;"><strong>ENTRY RESULTS</strong></td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #333; padding: 8px;">${student.name}</td>
+          <td style="border: 1px solid #333; padding: 8px;">${className}</td>
+          <td style="border: 1px solid #333; padding: 8px;">${gradePoints}</td>
+        </tr>
+      </table>
       
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <!-- Term Header -->
+      <h3 style="text-align: center; margin: 15px 0; font-size: 14px; text-decoration: underline;">${term.toUpperCase()}</h3>
+      
+      <!-- Subjects Table -->
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
         <thead>
-          <tr style="background: #1e40af; color: white;">
-            <th style="border: 1px solid #333; padding: 10px; text-align: left;">Subject</th>
-            <th style="border: 1px solid #333; padding: 10px; text-align: center;">Score</th>
-            <th style="border: 1px solid #333; padding: 10px; text-align: center;">Grade</th>
-            <th style="border: 1px solid #333; padding: 10px; text-align: left;">Remarks</th>
+          <tr style="background: #f0f0f0;">
+            <th style="border: 1px solid #333; padding: 8px; text-align: left;">SUBJECTS</th>
+            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">TEST ONE</th>
+            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 80px;">TEST TWO</th>
+            <th style="border: 1px solid #333; padding: 8px; text-align: center; width: 100px;">END OF TERM</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;"><strong>English *</strong></td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.english}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.english}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.english)}</td>
-          </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="border: 1px solid #333; padding: 8px;"><strong>Mathematics *</strong></td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.math}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.math}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.math)}</td>
+            <td style="border: 1px solid #333; padding: 8px;">ENGLISH</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'english')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'english')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'english')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;"><strong>Biology *</strong></td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.biology}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.biology}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.biology)}</td>
-          </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="border: 1px solid #333; padding: 8px;"><strong>Science (Combined) *</strong></td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.science}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.science}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.science)}</td>
+            <td style="border: 1px solid #333; padding: 8px;">MATHEMATICS</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'math')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'math')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'math')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">Chemistry</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.chemistry}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.chemistry}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.chemistry)}</td>
-          </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="border: 1px solid #333; padding: 8px;">Physics</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.physics}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.physics}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.physics)}</td>
+            <td style="border: 1px solid #333; padding: 8px;">BIOLOGY</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'biology')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'biology')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'biology')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">Design & Technology</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.dAndT}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.dAndT}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.dAndT)}</td>
-          </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="border: 1px solid #333; padding: 8px;">History</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.history}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.history}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.history)}</td>
+            <td style="border: 1px solid #333; padding: 8px;">SCIENCE</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'science')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'science')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'science')}</td>
           </tr>
           <tr>
-            <td style="border: 1px solid #333; padding: 8px;">Religious Education</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.re}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.re}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.re)}</td>
+            <td style="border: 1px solid #333; padding: 8px;">CIVIC EDUCATION</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'civic')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'civic')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'civic')}</td>
           </tr>
-          <tr style="background: #f3f4f6;">
-            <td style="border: 1px solid #333; padding: 8px;">Civic Education</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.civic}</td>
-            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${student.grades.civic}</td>
-            <td style="border: 1px solid #333; padding: 8px;">${getRemarks(student.civic)}</td>
+          <tr>
+            <td style="border: 1px solid #333; padding: 8px;">RELIGIOUS EDUCATION</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 're')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 're')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 're')}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #333; padding: 8px;">HISTORY</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'history')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'history')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'history')}</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #333; padding: 8px;">DESIGN & TECHNOLOGY</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test1, 'dAndT')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test2, 'dAndT')}</td>
+            <td style="border: 1px solid #333; padding: 8px; text-align: center;">${getScore(test3, 'dAndT')}</td>
           </tr>
         </tbody>
-        <tfoot>
-          <tr style="background: #1e40af; color: white;">
-            <td style="border: 1px solid #333; padding: 10px;"><strong>COMPULSORY SUBJECTS AVERAGE</strong></td>
-            <td style="border: 1px solid #333; padding: 10px; text-align: center;" colspan="3"><strong>${student.compulsoryAverage}%</strong></td>
-          </tr>
-          <tr style="background: #1e3a5f; color: white;">
-            <td style="border: 1px solid #333; padding: 10px;"><strong>OVERALL GRADE POINTS</strong></td>
-            <td style="border: 1px solid #333; padding: 10px; text-align: center;" colspan="3"><strong>${student.overallGradePoints} points (lower is better)</strong></td>
-          </tr>
-        </tfoot>
       </table>
       
-      <p style="font-size: 12px; color: #666;">* Compulsory subjects</p>
+      <!-- Grade Points and Position -->
+      <p style="margin: 10px 0; font-size: 12px;"><strong>POINTS IN BEST SIX INCLUDING ENGLISH AND MATHEMATICS:</strong> ${gradePoints}</p>
+      <p style="margin: 10px 0; font-size: 12px;"><strong>POSITION IN CLASS:</strong> ${rank} / ${totalStudents}</p>
       
-      <div style="margin-top: 40px; display: flex; justify-content: space-between;">
-        <div>
-          <p style="border-top: 1px solid #333; padding-top: 5px; width: 200px;">Class Teacher's Signature</p>
+      <!-- Teacher's Remarks -->
+      <div style="margin: 20px 0; border: 1px solid #333; padding: 10px;">
+        <h4 style="margin: 0 0 10px 0; font-size: 12px; text-decoration: underline;">CLASS TEACHER'S REMARKS</h4>
+        <p style="margin: 5px 0; font-size: 11px;"><strong>${teacherName}</strong></p>
+        <div style="min-height: 60px; border-bottom: 1px dotted #999; margin-top: 10px;"></div>
+      </div>
+      
+      <!-- Grading Scale -->
+      <div style="margin: 20px 0;">
+        <p style="font-size: 10px; margin-bottom: 5px;"><strong>Grades are awarded on an 8 point grade scale as follows</strong></p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+          <tr>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Grade</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">1</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">2</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">3</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">4</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">5</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">6</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">7</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">9</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Score</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">85-100</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">75-84</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">70-74</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">65-69</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">60-64</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">55-59</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">50-54</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">0-49</td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center; font-weight: bold;">Description</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Distinction</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Distinction</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Merit</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Merit</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Credit</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Credit</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Pass</td>
+            <td style="border: 1px solid #333; padding: 4px; text-align: center;">Fail</td>
+          </tr>
+        </table>
+      </div>
+      
+      <!-- Signatures -->
+      <div style="display: flex; justify-content: space-between; margin-top: 40px;">
+        <div style="text-align: center;">
+          <p style="border-top: 1px solid #333; padding-top: 5px; width: 150px; margin: 0 auto;">PRINCIPAL</p>
         </div>
-        <div>
-          <p style="border-top: 1px solid #333; padding-top: 5px; width: 200px;">Principal's Signature</p>
-        </div>
-        <div>
-          <p style="border-top: 1px solid #333; padding-top: 5px; width: 150px;">Date</p>
+        <div style="text-align: center;">
+          <p style="border: 2px solid #333; padding: 20px 40px; margin: 0;">SCHOOL STAMP</p>
         </div>
       </div>
     </div>
   `;
 }
 
-function getRemarks(score: number): string {
-  if (score >= 90) return 'Outstanding';
-  if (score >= 80) return 'Excellent';
-  if (score >= 70) return 'Very Good';
-  if (score >= 60) return 'Good';
-  if (score >= 50) return 'Satisfactory';
-  if (score >= 40) return 'Needs Improvement';
-  if (score >= 30) return 'Poor';
-  return 'Very Poor';
-}
-
 export function exportReportCards(
-  students: StudentResult[],
+  tests: [TestData | null, TestData | null, TestData | null],
   schoolName: string,
-  term: string
+  term: string,
+  className: string,
+  teacherName: string
 ): void {
-  const content = students.map((s) => generateReportCardHTML(s, schoolName, term)).join('');
+  // Combine all students from all tests
+  const studentMap = new Map<string, StudentTestScores>();
+  
+  tests.forEach((test, testIndex) => {
+    if (!test) return;
+    test.results.forEach((result) => {
+      const existing = studentMap.get(result.name) || {
+        name: result.name,
+        test1: null,
+        test2: null,
+        test3: null,
+      };
+      if (testIndex === 0) existing.test1 = result;
+      if (testIndex === 1) existing.test2 = result;
+      if (testIndex === 2) existing.test3 = result;
+      studentMap.set(result.name, existing);
+    });
+  });
+  
+  const students = Array.from(studentMap.values());
+  const totalStudents = students.length;
+  const rankMap = calculateFinalRank(students, totalStudents);
+  
+  const content = students
+    .map((s) => generateReportCardHTML(
+      s,
+      schoolName,
+      term,
+      className,
+      teacherName,
+      rankMap.get(s.name) || 0,
+      totalStudents
+    ))
+    .join('');
   
   const fullHTML = `
 <!DOCTYPE html>
