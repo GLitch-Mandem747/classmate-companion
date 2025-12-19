@@ -5,15 +5,11 @@ import { ResultsTable } from '@/components/ResultsTable';
 import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
 import { StudentData, StudentResult, calculateStudentResults } from '@/lib/grading';
+import { TestData } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Users, FileText, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface TestData {
-  name: string;
-  results: StudentResult[];
-}
 
 const Index = () => {
   const [tests, setTests] = useState<[TestData | null, TestData | null, TestData | null]>([null, null, null]);
@@ -145,7 +141,7 @@ const Index = () => {
             {currentTest && (
               <>
                 <ResultsTable results={currentTest.results} />
-                <ExportPanel results={currentTest.results} />
+                <ExportPanel tests={tests} currentResults={currentTest.results} />
               </>
             )}
             
