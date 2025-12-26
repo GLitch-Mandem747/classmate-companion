@@ -4,11 +4,12 @@ import { DataImport } from '@/components/DataImport';
 import { ResultsTable } from '@/components/ResultsTable';
 import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
+import { SchoolReport } from '@/components/SchoolReport';
 import { StudentData, StudentResult, calculateStudentResults } from '@/lib/grading';
 import { TestData } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Users, FileText, Check } from 'lucide-react';
+import { RefreshCw, Users, FileText, Check, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Index = () => {
@@ -16,6 +17,8 @@ const Index = () => {
   const [activeTest, setActiveTest] = useState<0 | 1 | 2>(0);
   const [testName, setTestName] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentResult | null>(null);
+  const [showReport, setShowReport] = useState(false);
 
   const handleImport = (students: StudentData[]) => {
     const calculated = calculateStudentResults(students);
@@ -42,8 +45,42 @@ const Index = () => {
     setShowImport(false);
   };
 
+  const handleViewReport = (student: StudentResult) => {
+    setSelectedStudent(student);
+    setShowReport(true);
+  };
+
   const currentTest = tests[activeTest];
   const hasAnyData = tests.some(t => t !== null);
+
+  // If showing report, render only the report
+  if (showReport && selectedStudent) {
+    return (
+      <>
+        <div className="no-print p-4 bg-gray-900">
+          <Button onClick={() => setShowReport(false)} variant="outline">
+            ← Back to Dashboard
+          </Button>
+        </div>
+        <SchoolReport
+          studentName={selectedStudent.name.toUpperCase()}
+          className="G11 – MARTYRS"
+          entryResults="513"
+          term="TERM THREE – 2025"
+          subjects={selectedStudent.subjects.map(s => ({
+            name: s.subject.toUpperCase(),
+            test1: Math.round(s.score * 0.8),
+            test2: Math.round(s.score * 0.9),
+            endOfTerm: s.score
+          }))}
+          pointsInBestSix={selectedStudent.bestSixPoints}
+          position={`${selectedStudent.rank} / ${currentTest?.results.length || 0}`}
+          teacherName="MR. SINYANGWE"
+          remarks="An outstanding student who consistently excels and maintains excellent academic performance. He is a consistent leaner and shows great dedication towards studies, encourage him to study extra hard for better results. Keep it up."
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,6 +177,45 @@ const Index = () => {
           <div className="space-y-6">
             {currentTest && (
               <>
+                {/* Results Table with View Report Button */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Student Results</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left p-2">Rank</th>
+                            <th className="text-left p-2">Name</th>
+                            <th className="text-center p-2">Best 6 Points</th>
+                            <th className="text-center p-2">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentTest.results.map((student) => (
+                            <tr key={student.name} className="border-b">
+                              <td className="p-2">{student.rank}</td>
+                              <td className="p-2">{student.name}</td>
+                              <td className="text-center p-2">{student.bestSixPoints}</td>
+                              <td className="text-center p-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewReport(student)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Report
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
                 <ResultsTable results={currentTest.results} />
                 <ExportPanel tests={tests} currentResults={currentTest.results} />
               </>
@@ -171,6 +247,10 @@ const Index = () => {
                 <li className="flex gap-2">
                   <span className="text-primary font-bold">3.</span>
                   View grades & export results
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-bold">4.</span>
+                  Click "View Report" to see individual reports
                 </li>
               </ol>
               <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
