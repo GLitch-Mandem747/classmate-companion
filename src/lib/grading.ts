@@ -29,6 +29,12 @@ export interface StudentData {
   civic: number;
 }
 
+export interface SubjectScore {
+  subject: string;
+  score: number;
+  grade: string;
+}
+
 export interface StudentResult extends StudentData {
   id: string;
   science: number;
@@ -36,7 +42,9 @@ export interface StudentResult extends StudentData {
   compulsoryAverage: number;
   overallTotal: number;
   overallGradePoints: number; // Sum of grade numbers (lower is better)
+  bestSixPoints: number; // Sum of best 6 subject grades
   rank: number;
+  subjects: SubjectScore[]; // Array of all subjects with scores and grades
   grades: {
     english: string;
     biology: string;
@@ -121,6 +129,18 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
     const topTwoScoreTotal = topTwoByScore.reduce((sum, subj) => sum + subj.score, 0);
     const overallTotal = compulsoryTotal + topTwoScoreTotal;
     
+    // Build subjects array for report generation
+    const subjects: SubjectScore[] = [
+      { subject: 'English', score: student.english, grade: getGrade(student.english) },
+      { subject: 'Mathematics', score: student.math, grade: getGrade(student.math) },
+      { subject: 'Biology', score: student.biology, grade: getGrade(student.biology) },
+      { subject: 'Science', score: Math.round(science * 10) / 10, grade: getGrade(science) },
+      { subject: 'Civic Education', score: student.civic, grade: getGrade(student.civic) },
+      { subject: 'Religious Education', score: student.re, grade: getGrade(student.re) },
+      { subject: 'History', score: student.history, grade: getGrade(student.history) },
+      { subject: 'Design & Technology', score: student.dAndT, grade: getGrade(student.dAndT) },
+    ];
+
     return {
       ...student,
       id: `student-${index}-${Date.now()}`,
@@ -129,7 +149,9 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
       compulsoryAverage: Math.round(compulsoryAverage * 10) / 10,
       overallTotal: Math.round(overallTotal * 10) / 10,
       overallGradePoints,
+      bestSixPoints: overallGradePoints, // Same as overallGradePoints (best 6)
       rank: 0,
+      subjects,
       grades: {
         english: getGrade(student.english),
         biology: getGrade(student.biology),
