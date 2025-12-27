@@ -54,7 +54,7 @@ const Index = () => {
   const hasAnyData = tests.some(t => t !== null);
 
   // If showing report, render only the report
-  if (showReport && selectedStudent) {
+  if (showReport && selectedStudent && selectedStudent.subjects) {
     return (
       <>
         <div className="no-print p-4 bg-gray-900">
@@ -73,7 +73,7 @@ const Index = () => {
             test2: Math.round(s.score * 0.9),
             endOfTerm: s.score
           }))}
-          pointsInBestSix={selectedStudent.bestSixPoints}
+          pointsInBestSix={selectedStudent.bestSixPoints || selectedStudent.overallGradePoints}
           position={`${selectedStudent.rank} / ${currentTest?.results.length || 0}`}
           teacherName="MR. SINYANGWE"
           remarks="An outstanding student who consistently excels and maintains excellent academic performance. He is a consistent leaner and shows great dedication towards studies, encourage him to study extra hard for better results. Keep it up."
@@ -198,7 +198,7 @@ const Index = () => {
                             <tr key={student.name} className="border-b">
                               <td className="p-2">{student.rank}</td>
                               <td className="p-2">{student.name}</td>
-                              <td className="text-center p-2">{student.bestSixPoints}</td>
+                              <td className="text-center p-2">{student.bestSixPoints || student.overallGradePoints}</td>
                               <td className="text-center p-2">
                                 <Button
                                   size="sm"
