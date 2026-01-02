@@ -24,7 +24,7 @@ export interface JuniorStudentResult {
   totalScore: number;
   averageScore: number;
   overallGradePoints: number;
-  bestSixPoints: number;
+  bestFourPoints: number;
   rank: number;
 }
 
@@ -91,9 +91,9 @@ export const calculateJuniorStudentResults = (students: JuniorStudentData[]): Ju
       });
     }
 
-    // Sort grade points ascending (lower is better) and take best 6
+    // Sort grade points ascending (lower is better) and take best 4
     gradePoints.sort((a, b) => a - b);
-    const bestSixPoints = gradePoints.slice(0, 6).reduce((sum, p) => sum + p, 0);
+    const bestFourPoints = gradePoints.slice(0, 4).reduce((sum, p) => sum + p, 0);
 
     const averageScore = subjectCount > 0 ? Math.round(totalScore / subjectCount) : 0;
     const overallGradePoints = gradePoints.reduce((sum, p) => sum + p, 0);
@@ -107,15 +107,15 @@ export const calculateJuniorStudentResults = (students: JuniorStudentData[]): Ju
       totalScore,
       averageScore,
       overallGradePoints,
-      bestSixPoints,
+      bestFourPoints,
       rank: 0
     };
   });
 
-  // Sort by best six points (ascending - lower is better), then by total score (descending)
+  // Sort by best four points (ascending - lower is better), then by total score (descending)
   results.sort((a, b) => {
-    if (a.bestSixPoints !== b.bestSixPoints) {
-      return a.bestSixPoints - b.bestSixPoints;
+    if (a.bestFourPoints !== b.bestFourPoints) {
+      return a.bestFourPoints - b.bestFourPoints;
     }
     return b.totalScore - a.totalScore;
   });

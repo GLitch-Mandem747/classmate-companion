@@ -51,13 +51,13 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const handleExportExcel = () => {
     if (!currentTest) return;
     
-    const headers = ['Rank', 'Name', 'English', 'Math', 'Best 6 Points'];
+    const headers = ['Rank', 'Name', 'English', 'Math', 'Best 4 Points'];
     const rows = currentTest.results.map(student => [
       student.rank,
       student.name,
       student.english,
       student.math,
-      student.bestSixPoints || student.overallGradePoints
+      student.bestFourPoints
     ]);
     
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
@@ -214,7 +214,7 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                           <th className="text-left p-2">Name</th>
                           <th className="text-center p-2">English</th>
                           <th className="text-center p-2">Math</th>
-                          <th className="text-center p-2">Best 6 Points</th>
+                          <th className="text-center p-2">Best 4 Points</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -224,7 +224,7 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                             <td className="p-2">{student.name}</td>
                             <td className="text-center p-2">{student.english}</td>
                             <td className="text-center p-2">{student.math}</td>
-                            <td className="text-center p-2">{student.bestSixPoints || student.overallGradePoints}</td>
+                            <td className="text-center p-2">{student.bestFourPoints}</td>
                           </tr>
                         ))}
                       </tbody>
