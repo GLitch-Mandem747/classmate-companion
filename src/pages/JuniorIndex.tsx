@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { JuniorDataImport } from '@/components/JuniorDataImport';
-import { SchoolReport } from '@/components/SchoolReport';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Users, FileText, Check, Eye, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Users, FileText, Check, ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GradingScale } from '@/components/GradingScale';
+import { toast } from '@/hooks/use-toast';
 
 interface JuniorTestData {
   name: string;
@@ -22,8 +22,6 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const [activeTest, setActiveTest] = useState<0 | 1 | 2>(0);
   const [testName, setTestName] = useState('');
   const [showImport, setShowImport] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<JuniorStudentResult | null>(null);
-  const [showReport, setShowReport] = useState(false);
 
   const handleImport = (students: JuniorStudentData[]) => {
     const calculated = calculateJuniorStudentResults(students);
@@ -50,41 +48,33 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
     setShowImport(false);
   };
 
-  const handleViewReport = (student: JuniorStudentResult) => {
-    setSelectedStudent(student);
-    setShowReport(true);
+  const handleExportExcel = () => {
+    if (!currentTest) return;
+    
+    const headers = ['Rank', 'Name', 'English', 'Math', 'Best 6 Points'];
+    const rows = currentTest.results.map(student => [
+      student.rank,
+      student.name,
+      student.english,
+      student.math,
+      student.bestSixPoints || student.overallGradePoints
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${currentTest.name}_results.csv`;
+    link.click();
+    
+    toast({
+      title: 'Export Complete',
+      description: 'Results exported to Excel (CSV) file.',
+    });
   };
 
   const currentTest = tests[activeTest];
   const hasAnyData = tests.some(t => t !== null);
-
-  if (showReport && selectedStudent && selectedStudent.subjects) {
-    return (
-      <>
-        <div className="no-print p-4 bg-gray-900">
-          <Button onClick={() => setShowReport(false)} variant="outline">
-            ← Back to Dashboard
-          </Button>
-        </div>
-        <SchoolReport
-          studentName={selectedStudent.name.toUpperCase()}
-          className="JUNIOR CLASS"
-          entryResults="513"
-          term="TERM THREE – 2025"
-          subjects={selectedStudent.subjects.map(s => ({
-            name: s.subject.toUpperCase(),
-            test1: Math.round(s.score * 0.8),
-            test2: Math.round(s.score * 0.9),
-            endOfTerm: s.score
-          }))}
-          pointsInBestSix={selectedStudent.bestSixPoints || selectedStudent.overallGradePoints}
-          position={`${selectedStudent.rank} / ${currentTest?.results.length || 0}`}
-          teacherName="MR. SINYANGWE"
-          remarks="An outstanding student who consistently excels and maintains excellent academic performance."
-        />
-      </>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -203,8 +193,17 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
           <div className="space-y-6">
             {currentTest && (
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-green-500">Student Results</CardTitle>
+                  <Button 
+                    onClick={handleExportExcel}
+                    variant="secondary"
+                    size="sm"
+                    className="bg-green-700 hover:bg-green-800 text-white"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Export to Excel
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -213,8 +212,9 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                         <tr className="border-b">
                           <th className="text-left p-2">Rank</th>
                           <th className="text-left p-2">Name</th>
+                          <th className="text-center p-2">English</th>
+                          <th className="text-center p-2">Math</th>
                           <th className="text-center p-2">Best 6 Points</th>
-                          <th className="text-center p-2">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -222,18 +222,9 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                           <tr key={student.name} className="border-b">
                             <td className="p-2">{student.rank}</td>
                             <td className="p-2">{student.name}</td>
+                            <td className="text-center p-2">{student.english}</td>
+                            <td className="text-center p-2">{student.math}</td>
                             <td className="text-center p-2">{student.bestSixPoints || student.overallGradePoints}</td>
-                            <td className="text-center p-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewReport(student)}
-                                className="border-green-700 text-green-500 hover:bg-green-900/20"
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Report
-                              </Button>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
