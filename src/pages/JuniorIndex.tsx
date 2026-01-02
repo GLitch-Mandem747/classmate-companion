@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { JuniorDataImport } from '@/components/JuniorDataImport';
+import { JuniorResultsTable } from '@/components/JuniorResultsTable';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,13 +52,23 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const handleExportExcel = () => {
     if (!currentTest) return;
     
-    const headers = ['Rank', 'Name', 'English', 'Math', 'Best 4 Points'];
+    // Get all optional subject names
+    const optionalSubjectNames = new Set<string>();
+    currentTest.results.forEach(student => {
+      if (student.optionalSubjects) {
+        Object.keys(student.optionalSubjects).forEach(key => optionalSubjectNames.add(key));
+      }
+    });
+    const sortedOptionalSubjects = Array.from(optionalSubjectNames).sort();
+    
+    const headers = ['Rank', 'Name', 'English', 'Math', ...sortedOptionalSubjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)), 'Total Points'];
     const rows = currentTest.results.map(student => [
       student.rank,
       student.name,
       student.english,
       student.math,
-      student.bestFourPoints
+      ...sortedOptionalSubjects.map(s => student.optionalSubjects?.[s] ?? ''),
+      student.overallGradePoints
     ]);
     
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
@@ -205,31 +216,8 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                     Export to Excel
                   </Button>
                 </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Rank</th>
-                          <th className="text-left p-2">Name</th>
-                          <th className="text-center p-2">English</th>
-                          <th className="text-center p-2">Math</th>
-                          <th className="text-center p-2">Best 4 Points</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentTest.results.map((student) => (
-                          <tr key={student.name} className="border-b">
-                            <td className="p-2">{student.rank}</td>
-                            <td className="p-2">{student.name}</td>
-                            <td className="text-center p-2">{student.english}</td>
-                            <td className="text-center p-2">{student.math}</td>
-                            <td className="text-center p-2">{student.bestFourPoints}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <CardContent className="p-0">
+                  <JuniorResultsTable results={currentTest.results} />
                 </CardContent>
               </Card>
             )}
