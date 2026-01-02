@@ -13,7 +13,7 @@ export function Header() {
               Student Grading System
             </h1>
             <p className="text-sm text-muted-foreground">
-              Import • Calculate • Export Report Cards
+              Import • Calculate • Export Results
             </p>
           </div>
         </div>
