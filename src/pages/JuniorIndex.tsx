@@ -203,23 +203,17 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
         <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             {currentTest && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-green-500">Student Results</CardTitle>
-                  <Button 
-                    onClick={handleExportExcel}
-                    variant="secondary"
-                    size="sm"
-                    className="bg-green-700 hover:bg-green-800 text-white"
-                  >
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Student Results</h2>
+                  <Button onClick={handleExportExcel} variant="secondary" size="sm">
                     <FileSpreadsheet className="h-4 w-4 mr-2" />
                     Export to Excel
                   </Button>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <JuniorResultsTable results={currentTest.results} />
-                </CardContent>
-              </Card>
+                </div>
+
+                <JuniorResultsTable results={currentTest.results} />
+              </>
             )}
             
             {!currentTest && !showImport && (
