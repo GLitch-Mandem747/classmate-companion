@@ -1,4 +1,5 @@
-import { JuniorStudentResult, getGrade } from '@/lib/juniorGrading';
+import { JuniorStudentResult } from '@/lib/juniorGrading';
+import { getGradeClass } from '@/lib/grading';
 import {
   Table,
   TableBody,
@@ -13,14 +14,6 @@ import { Trophy, TrendingUp } from 'lucide-react';
 
 interface JuniorResultsTableProps {
   results: JuniorStudentResult[];
-}
-
-function getGradeClass(grade: string): string {
-  const gradeNum = parseInt(grade);
-  if (gradeNum <= 2) return 'grade-excellent';
-  if (gradeNum <= 4) return 'grade-good';
-  if (gradeNum <= 6) return 'grade-average';
-  return 'grade-poor';
 }
 
 function GradeBadge({ grade }: { grade: string }) {
@@ -55,7 +48,7 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
     <Card className="animate-fade-in">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-green-500" />
+          <TrendingUp className="h-5 w-5 text-primary" />
           Class Results
         </CardTitle>
         <CardDescription>
@@ -64,7 +57,9 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
         <div className="flex gap-4 mt-4 text-sm">
           <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg">
             <Trophy className="h-4 w-4 text-warning" />
-            <span>Top: <strong>{topStudent.name}</strong> ({topStudent.overallGradePoints} pts)</span>
+            <span>
+              Top: <strong>{topStudent.name}</strong> ({topStudent.overallGradePoints} pts)
+            </span>
           </div>
           <div className="bg-secondary px-3 py-2 rounded-lg">
             Class Avg: <strong>{averageGradePoints.toFixed(1)} pts</strong>
@@ -78,43 +73,42 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
               <TableRow className="table-header">
                 <TableHead className="w-[60px] sticky left-0 bg-secondary z-10">Rank</TableHead>
                 <TableHead className="min-w-[150px] sticky left-[60px] bg-secondary z-10">Name</TableHead>
-                <TableHead className="text-center bg-green-900/20">Eng</TableHead>
-                <TableHead className="text-center bg-green-900/20">Math</TableHead>
-                {sortedOptionalSubjects.map(subject => (
+                <TableHead className="text-center bg-primary/20">Eng</TableHead>
+                <TableHead className="text-center bg-primary/20">Math</TableHead>
+                {sortedOptionalSubjects.map((subject) => (
                   <TableHead key={subject} className="text-center capitalize">
                     {subject.length > 6 ? subject.slice(0, 6) + '.' : subject}
                   </TableHead>
                 ))}
-                <TableHead className="text-center bg-green-900/30">Total Pts</TableHead>
+                <TableHead className="text-center bg-primary/20">Grade Pts</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {results.map((student) => (
-                <TableRow 
-                  key={student.id} 
+                <TableRow
+                  key={student.id}
                   className="table-row-alt hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="font-bold sticky left-0 bg-card z-10">
-                    {student.rank}
-                  </TableCell>
+                  <TableCell className="font-bold sticky left-0 bg-card z-10">{student.rank}</TableCell>
                   <TableCell className="font-medium sticky left-[60px] bg-card z-10">
                     {student.name}
                   </TableCell>
-                  <TableCell className="text-center bg-green-900/10">
+                  <TableCell className="text-center bg-primary/5">
                     <div className="flex flex-col items-center gap-1">
                       <span>{student.english}</span>
                       <GradeBadge grade={student.grades.english} />
                     </div>
                   </TableCell>
-                  <TableCell className="text-center bg-green-900/10">
+                  <TableCell className="text-center bg-primary/5">
                     <div className="flex flex-col items-center gap-1">
                       <span>{student.math}</span>
                       <GradeBadge grade={student.grades.math} />
                     </div>
                   </TableCell>
-                  {sortedOptionalSubjects.map(subject => {
+                  {sortedOptionalSubjects.map((subject) => {
                     const score = student.optionalSubjects?.[subject];
-                    const grade = student.grades[subject.toLowerCase()];
+                    const grade = student.grades[subject] ?? '9';
+
                     return (
                       <TableCell key={subject} className="text-center">
                         {score !== undefined ? (
@@ -128,7 +122,7 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
                       </TableCell>
                     );
                   })}
-                  <TableCell className="text-center bg-green-900/20">
+                  <TableCell className="text-center bg-primary/5">
                     <span className="font-bold text-lg">{student.overallGradePoints}</span>
                   </TableCell>
                 </TableRow>
@@ -137,9 +131,9 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
           </Table>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-        
+
         <p className="text-xs text-muted-foreground mt-4">
-          Total Points = Mandatory subjects (Math + English) + Best 4 optional subjects. Lower points = better.
+          Grade Points = Mandatory subjects (English + Math) + best 4 optional subjects. Lower points = better.
         </p>
       </CardContent>
     </Card>
