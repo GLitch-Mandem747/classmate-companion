@@ -12,10 +12,10 @@ interface JuniorDataImportProps {
   onImport: (students: JuniorStudentData[]) => void;
 }
 
-const SAMPLE_DATA = `| Name | English | Math | Science | Social |
-| John Doe | 85 | 78 | 82 | 75 |
-| Jane Smith | 92 | 88 | 90 | 85 |
-| Bob Wilson | 68 | 72 | 65 | 70 |`;
+const SAMPLE_DATA = `| Name | English | Math | D&T | Biology | Civic Ed | Accounts | History | RE |
+| John Doe | 90 | 95 | 86 | 86 | 75 | 90 | 82 | 78 |
+| Jane Smith | 85 | 88 | 72 | 90 | 68 | 78 | 85 | 80 |
+| Bob Wilson | 68 | 72 | 65 | 70 | 58 | 62 | 55 | 60 |`;
 
 const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
   const sheetName = workbook.SheetNames[0];
@@ -38,7 +38,8 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
     const student: JuniorStudentData = {
       name: String(row[nameIndex] || '').trim(),
       english: 0,
-      math: 0
+      math: 0,
+      optionalSubjects: {}
     };
 
     headers.forEach((header, idx) => {
@@ -51,7 +52,7 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
       } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
         student.math = value;
       } else if (header && value) {
-        student[header] = value;
+        student.optionalSubjects[header] = value;
       }
     });
 
@@ -196,7 +197,7 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
         <TabsContent value="paste">
           <div className="space-y-4">
             <Textarea
-              placeholder={`Paste your data here...\n\nFormat (pipe or tab separated):\n| Name | English | Math | Science | Social |\n| John Doe | 85 | 78 | 82 | 75 |`}
+              placeholder={`Paste your data here...\n\nFormat (pipe or tab separated):\n| Name | English | Math | D&T | Biology | Civic Ed | Accounts |\n| John Doe | 90 | 95 | 86 | 86 | 75 | 90 |`}
               value={pastedData}
               onChange={(e) => setPastedData(e.target.value)}
               className="min-h-[200px] font-mono text-sm border-green-700 focus:ring-green-500"

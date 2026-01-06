@@ -1,18 +1,19 @@
 // Junior grading system - Same scale as senior but different subject structure
-// Required: English, Math
-// Optional: Any other subjects
+// Required: English, Math (mandatory)
+// Optional: Up to 10 additional subjects (best 4 counted)
 
 export interface JuniorStudentData {
   name: string;
   english: number;
   math: number;
-  optionalSubjects?: Record<string, number>;
+  optionalSubjects: Record<string, number>;
 }
 
 export interface JuniorSubjectScore {
   subject: string;
   score: number;
   grade: string;
+  gradePoints: number;
 }
 
 export interface JuniorStudentResult {
@@ -20,12 +21,15 @@ export interface JuniorStudentResult {
   name: string;
   english: number;
   math: number;
-  optionalSubjects?: Record<string, number>;
-  subjects: JuniorSubjectScore[];
+  optionalSubjects: Record<string, number>;
+  optionalSubjectNames: string[]; // Ordered list of optional subject names
   grades: Record<string, string>;
+  gradePoints: Record<string, number>;
   mandatoryPoints: number; // Math + English grade points
   bestFourOptionalPoints: number; // Best 4 optional subjects
+  bestFourSubjects: string[]; // Names of best 4 subjects used
   overallGradePoints: number; // Total = mandatory + best 4 optional
+  compulsoryAverage: number; // Average of English + Math scores
   rank: number;
 }
 
@@ -56,48 +60,49 @@ export const getGradePoints = (score: number): number => {
 };
 
 export const calculateJuniorStudentResults = (students: JuniorStudentData[]): JuniorStudentResult[] => {
-  const results: JuniorStudentResult[] = students.map((student, index) => {
-    const subjects: JuniorSubjectScore[] = [];
-    const grades: Record<string, string> = {};
-    const optionalGradePoints: number[] = [];
+  // Collect all optional subject names across all students for consistent ordering
+  const allOptionalSubjects = new Set<string>();
+  students.forEach(student => {
+    Object.keys(student.optionalSubjects).forEach(key => allOptionalSubjects.add(key));
+  });
+  const orderedOptionalSubjects = Array.from(allOptionalSubjects).sort();
 
-    // Process mandatory subjects (Math + English)
+  const results: JuniorStudentResult[] = students.map((student, index) => {
+    const grades: Record<string, string> = {};
+    const gradePointsMap: Record<string, number> = {};
+    const optionalWithPoints: { subject: string; points: number }[] = [];
+
+    // Process mandatory subjects (English + Math)
     const englishGrade = getGrade(student.english);
     const mathGrade = getGrade(student.math);
     const englishPoints = getGradePoints(student.english);
     const mathPoints = getGradePoints(student.math);
     
-    subjects.push({ subject: 'English', score: student.english, grade: englishGrade });
-    subjects.push({ subject: 'Math', score: student.math, grade: mathGrade });
-    
     grades['english'] = englishGrade;
     grades['math'] = mathGrade;
+    gradePointsMap['english'] = englishPoints;
+    gradePointsMap['math'] = mathPoints;
     
     const mandatoryPoints = englishPoints + mathPoints;
+    const compulsoryAverage = Math.round((student.english + student.math) / 2);
 
     // Process optional subjects
-    if (student.optionalSubjects) {
-      Object.entries(student.optionalSubjects).forEach(([key, value]) => {
-        const score = value;
-        const grade = getGrade(score);
-        const points = getGradePoints(score);
-        
-        subjects.push({
-          subject: key.charAt(0).toUpperCase() + key.slice(1),
-          score,
-          grade
-        });
-        
-        grades[key.toLowerCase()] = grade;
-        optionalGradePoints.push(points);
-      });
-    }
+    Object.entries(student.optionalSubjects).forEach(([key, score]) => {
+      const grade = getGrade(score);
+      const points = getGradePoints(score);
+      
+      grades[key.toLowerCase()] = grade;
+      gradePointsMap[key.toLowerCase()] = points;
+      optionalWithPoints.push({ subject: key.toLowerCase(), points });
+    });
 
-    // Sort optional grade points ascending (lower is better) and take best 4
-    optionalGradePoints.sort((a, b) => a - b);
-    const bestFourOptionalPoints = optionalGradePoints.slice(0, 4).reduce((sum, p) => sum + p, 0);
+    // Sort by points ascending (lower is better) and take best 4
+    optionalWithPoints.sort((a, b) => a.points - b.points);
+    const bestFour = optionalWithPoints.slice(0, 4);
+    const bestFourOptionalPoints = bestFour.reduce((sum, p) => sum + p.points, 0);
+    const bestFourSubjects = bestFour.map(b => b.subject);
 
-    // Total = mandatory (Math + English) + best 4 optional
+    // Total = mandatory (English + Math) + best 4 optional
     const overallGradePoints = mandatoryPoints + bestFourOptionalPoints;
 
     return {
@@ -106,11 +111,14 @@ export const calculateJuniorStudentResults = (students: JuniorStudentData[]): Ju
       english: student.english,
       math: student.math,
       optionalSubjects: student.optionalSubjects,
-      subjects,
+      optionalSubjectNames: orderedOptionalSubjects,
       grades,
+      gradePoints: gradePointsMap,
       mandatoryPoints,
       bestFourOptionalPoints,
+      bestFourSubjects,
       overallGradePoints,
+      compulsoryAverage,
       rank: 0
     };
   });
@@ -169,7 +177,7 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
         student.english = value;
       } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
         student.math = value;
-      } else if (student.optionalSubjects) {
+      } else {
         student.optionalSubjects[header] = value;
       }
     });
@@ -213,7 +221,7 @@ export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
         student.english = value;
       } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
         student.math = value;
-      } else if (student.optionalSubjects) {
+      } else {
         student.optionalSubjects[header] = value;
       }
     });

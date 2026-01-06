@@ -33,16 +33,8 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
   const topStudent = results[0];
   const averageGradePoints = results.reduce((sum, r) => sum + r.overallGradePoints, 0) / totalStudents;
 
-  // Get all optional subject names from results
-  const optionalSubjectNames = new Set<string>();
-  results.forEach(student => {
-    if (student.optionalSubjects) {
-      Object.keys(student.optionalSubjects).forEach(key => {
-        optionalSubjectNames.add(key);
-      });
-    }
-  });
-  const sortedOptionalSubjects = Array.from(optionalSubjectNames).sort();
+  // Get ordered optional subject names from first result
+  const optionalSubjectNames = results[0]?.optionalSubjectNames || [];
 
   return (
     <Card className="animate-fade-in">
@@ -57,9 +49,7 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
         <div className="flex gap-4 mt-4 text-sm">
           <div className="flex items-center gap-2 bg-secondary px-3 py-2 rounded-lg">
             <Trophy className="h-4 w-4 text-warning" />
-            <span>
-              Top: <strong>{topStudent.name}</strong> ({topStudent.overallGradePoints} pts)
-            </span>
+            <span>Top: <strong>{topStudent.name}</strong> ({topStudent.overallGradePoints} pts)</span>
           </div>
           <div className="bg-secondary px-3 py-2 rounded-lg">
             Class Avg: <strong>{averageGradePoints.toFixed(1)} pts</strong>
@@ -73,13 +63,14 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
               <TableRow className="table-header">
                 <TableHead className="w-[60px] sticky left-0 bg-secondary z-10">Rank</TableHead>
                 <TableHead className="min-w-[150px] sticky left-[60px] bg-secondary z-10">Name</TableHead>
-                <TableHead className="text-center bg-primary/20">Eng</TableHead>
-                <TableHead className="text-center bg-primary/20">Math</TableHead>
-                {sortedOptionalSubjects.map((subject) => (
+                <TableHead className="text-center">Eng</TableHead>
+                <TableHead className="text-center">Math</TableHead>
+                {optionalSubjectNames.map((subject) => (
                   <TableHead key={subject} className="text-center capitalize">
                     {subject.length > 6 ? subject.slice(0, 6) + '.' : subject}
                   </TableHead>
                 ))}
+                <TableHead className="text-center bg-primary/20">Comp. Avg</TableHead>
                 <TableHead className="text-center bg-primary/20">Grade Pts</TableHead>
               </TableRow>
             </TableHeader>
@@ -89,32 +80,38 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
                   key={student.id}
                   className="table-row-alt hover:bg-muted/50 transition-colors"
                 >
-                  <TableCell className="font-bold sticky left-0 bg-card z-10">{student.rank}</TableCell>
+                  <TableCell className="font-bold sticky left-0 bg-card z-10">
+                    {student.rank}
+                  </TableCell>
                   <TableCell className="font-medium sticky left-[60px] bg-card z-10">
                     {student.name}
                   </TableCell>
-                  <TableCell className="text-center bg-primary/5">
+                  <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-1">
                       <span>{student.english}</span>
                       <GradeBadge grade={student.grades.english} />
                     </div>
                   </TableCell>
-                  <TableCell className="text-center bg-primary/5">
+                  <TableCell className="text-center">
                     <div className="flex flex-col items-center gap-1">
                       <span>{student.math}</span>
                       <GradeBadge grade={student.grades.math} />
                     </div>
                   </TableCell>
-                  {sortedOptionalSubjects.map((subject) => {
-                    const score = student.optionalSubjects?.[subject];
-                    const grade = student.grades[subject] ?? '9';
+                  {optionalSubjectNames.map((subject) => {
+                    const score = student.optionalSubjects[subject];
+                    const grade = student.grades[subject.toLowerCase()];
+                    const isBestFour = student.bestFourSubjects.includes(subject.toLowerCase());
 
                     return (
-                      <TableCell key={subject} className="text-center">
+                      <TableCell 
+                        key={subject} 
+                        className={`text-center ${isBestFour ? 'bg-green-900/20' : ''}`}
+                      >
                         {score !== undefined ? (
                           <div className="flex flex-col items-center gap-1">
                             <span>{score}</span>
-                            <GradeBadge grade={grade} />
+                            <GradeBadge grade={grade || '9'} />
                           </div>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -122,6 +119,9 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
                       </TableCell>
                     );
                   })}
+                  <TableCell className="text-center bg-primary/5 font-semibold">
+                    {student.compulsoryAverage}%
+                  </TableCell>
                   <TableCell className="text-center bg-primary/5">
                     <span className="font-bold text-lg">{student.overallGradePoints}</span>
                   </TableCell>
@@ -131,9 +131,9 @@ export function JuniorResultsTable({ results }: JuniorResultsTableProps) {
           </Table>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-
+        
         <p className="text-xs text-muted-foreground mt-4">
-          Grade Points = Mandatory subjects (English + Math) + best 4 optional subjects. Lower points = better.
+          Grade Points = Mandatory (English + Math) + Best 4 optional subjects (highlighted in green). Lower points = better.
         </p>
       </CardContent>
     </Card>

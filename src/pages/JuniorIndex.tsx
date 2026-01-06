@@ -231,10 +231,13 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
             <div className="bg-card rounded-lg p-4 border border-green-700">
               <h3 className="font-semibold text-green-500 mb-2">Junior System Format</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Required columns: <span className="text-green-500">English, Math</span>
+                <span className="text-green-500 font-medium">Mandatory:</span> English, Math
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                <span className="text-green-500 font-medium">Optional:</span> Up to 10 additional subjects
               </p>
               <p className="text-sm text-muted-foreground">
-                Optional: Any additional subjects
+                <span className="text-green-500 font-medium">Calculation:</span> 2 mandatory + best 4 optional = 6 total
               </p>
             </div>
           </aside>
