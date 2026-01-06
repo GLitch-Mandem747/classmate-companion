@@ -1,4 +1,5 @@
 import { StudentResult, GRADE_SCALE, getGrade } from './grading';
+import { JuniorStudentResult } from './juniorGrading';
 
 export interface TestData {
   name: string;
@@ -497,6 +498,152 @@ export function exportReportCards(
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = `report_cards_${term.replace(/\s+/g, '_')}.doc`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+// Junior Export Functions
+
+export function exportJuniorToExcel(students: JuniorStudentResult[], filename: string = 'junior_results'): void {
+  if (students.length === 0) return;
+
+  // Get all optional subject names from first student (they all have the same ordered list)
+  const optionalSubjectNames = students[0]?.optionalSubjectNames || [];
+
+  const headers = [
+    'Rank',
+    'Name',
+    'English',
+    'English Grade',
+    'Math',
+    'Math Grade',
+    ...optionalSubjectNames.flatMap(s => [s.charAt(0).toUpperCase() + s.slice(1), `${s.charAt(0).toUpperCase() + s.slice(1)} Grade`]),
+    'Compulsory Average',
+    'Grade Points',
+  ];
+
+  const rows = students.map((s) => [
+    s.rank,
+    s.name,
+    s.english,
+    s.grades['english'] || '',
+    s.math,
+    s.grades['math'] || '',
+    ...optionalSubjectNames.flatMap(subj => [
+      s.optionalSubjects[subj] ?? '',
+      s.grades[subj.toLowerCase()] || ''
+    ]),
+    s.compulsoryAverage,
+    s.overallGradePoints,
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
+  ].join('\n');
+
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: string = 'School Name'): void {
+  if (students.length === 0) return;
+
+  const optionalSubjectNames = students[0]?.optionalSubjectNames || [];
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+    th { background-color: #16a34a; color: white; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .rank { font-weight: bold; }
+    .best-four { background-color: #dcfce7; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${schoolName}</h1>
+    <h2>Junior Student Results Report</h2>
+    <p>Generated on: ${new Date().toLocaleDateString()}</p>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Name</th>
+        <th>Eng</th>
+        <th>Math</th>
+        ${optionalSubjectNames.map(s => `<th>${s.charAt(0).toUpperCase() + s.slice(1)}</th>`).join('')}
+        <th>Comp. Avg</th>
+        <th>Grade Pts</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${students
+        .map(
+          (s) => `
+        <tr>
+          <td class="rank">${s.rank}</td>
+          <td>${s.name}</td>
+          <td>${s.english} (${s.grades['english'] || ''})</td>
+          <td>${s.math} (${s.grades['math'] || ''})</td>
+          ${optionalSubjectNames.map(subj => {
+            const isBestFour = s.bestFourSubjects.includes(subj.toLowerCase());
+            const score = s.optionalSubjects[subj] ?? '';
+            const grade = s.grades[subj.toLowerCase()] || '';
+            return `<td class="${isBestFour ? 'best-four' : ''}">${score}${grade ? ` (${grade})` : ''}</td>`;
+          }).join('')}
+          <td>${s.compulsoryAverage}</td>
+          <td>${s.overallGradePoints}</td>
+        </tr>
+      `
+        )
+        .join('')}
+    </tbody>
+  </table>
+  
+  <h3>Grading Scale Reference</h3>
+  <table style="width: auto;">
+    <thead>
+      <tr>
+        <th>Grade</th>
+        <th>Score Range</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${GRADE_SCALE.map(
+        (g) => `
+        <tr>
+          <td>${g.grade}</td>
+          <td>${g.minScore} - ${g.maxScore}</td>
+        </tr>
+      `
+      ).join('')}
+    </tbody>
+  </table>
+  
+  <p style="margin-top: 20px; font-size: 12px; color: #666;">
+    <strong>Note:</strong> Green highlighted cells indicate the best 4 optional subjects used in grade point calculation.
+  </p>
+</body>
+</html>
+  `;
+
+  const blob = new Blob([htmlContent], { type: 'application/msword' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'junior_student_results.doc';
   link.click();
   URL.revokeObjectURL(link.href);
 }
