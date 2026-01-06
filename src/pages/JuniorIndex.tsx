@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { JuniorDataImport } from '@/components/JuniorDataImport';
 import { JuniorResultsTable } from '@/components/JuniorResultsTable';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
+import { exportJuniorToExcel, exportJuniorToWord } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Users, FileText, Check, ArrowLeft, FileSpreadsheet } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RefreshCw, Users, FileText, Check, ArrowLeft, FileSpreadsheet, Download } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { GradingScale } from '@/components/GradingScale';
 import { toast } from '@/hooks/use-toast';
 
@@ -51,36 +52,19 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
 
   const handleExportExcel = () => {
     if (!currentTest) return;
-    
-    // Get all optional subject names
-    const optionalSubjectNames = new Set<string>();
-    currentTest.results.forEach(student => {
-      if (student.optionalSubjects) {
-        Object.keys(student.optionalSubjects).forEach(key => optionalSubjectNames.add(key));
-      }
-    });
-    const sortedOptionalSubjects = Array.from(optionalSubjectNames).sort();
-    
-    const headers = ['Rank', 'Name', 'English', 'Math', ...sortedOptionalSubjects.map(s => s.charAt(0).toUpperCase() + s.slice(1)), 'Total Points'];
-    const rows = currentTest.results.map(student => [
-      student.rank,
-      student.name,
-      student.english,
-      student.math,
-      ...sortedOptionalSubjects.map(s => student.optionalSubjects?.[s] ?? ''),
-      student.overallGradePoints
-    ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${currentTest.name}_results.csv`;
-    link.click();
-    
+    exportJuniorToExcel(currentTest.results, currentTest.name.replace(/\s+/g, '_'));
     toast({
       title: 'Export Complete',
       description: 'Results exported to Excel (CSV) file.',
+    });
+  };
+
+  const handleExportWord = () => {
+    if (!currentTest) return;
+    exportJuniorToWord(currentTest.results, 'Junior School Results');
+    toast({
+      title: 'Export Complete',
+      description: 'Results exported to Word file.',
     });
   };
 
@@ -204,13 +188,38 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
           <div className="space-y-6">
             {currentTest && (
               <>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-foreground">Student Results</h2>
-                  <Button onClick={handleExportExcel} variant="secondary" size="sm">
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Export to Excel
-                  </Button>
-                </div>
+                <Card className="animate-fade-in">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Download className="h-5 w-5 text-green-500" />
+                      Export Results
+                    </CardTitle>
+                    <CardDescription>
+                      Export current test results to Excel or Word format
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Button 
+                        onClick={handleExportExcel}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Export to Excel
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleExportWord}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Export to Word
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <JuniorResultsTable results={currentTest.results} />
               </>
