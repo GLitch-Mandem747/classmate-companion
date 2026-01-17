@@ -7,33 +7,20 @@ export interface TestData {
 }
 
 export function exportToExcel(students: StudentResult[], filename: string = 'student_results'): void {
-  // Create CSV content (Excel-compatible)
+  // Create CSV content (Excel-compatible) - scores only, no individual grades
   const headers = [
     'Rank',
     'Name',
     'English',
-    'English Grade',
     'Biology',
-    'Biology Grade',
     'Math',
-    'Math Grade',
     'Chemistry',
-    'Chemistry Grade',
     'Physics',
-    'Physics Grade',
     'Science (Avg)',
-    'Science Grade',
     'D&T',
-    'D&T Grade',
     'History',
-    'History Grade',
     'R.E',
-    'R.E Grade',
     'Civic',
-    'Civic Grade',
-    'Compulsory Total',
-    'Compulsory Average',
-    'Overall Total',
     'Grade Points',
   ];
 
@@ -41,28 +28,15 @@ export function exportToExcel(students: StudentResult[], filename: string = 'stu
     s.rank,
     s.name,
     s.english,
-    s.grades.english,
     s.biology,
-    s.grades.biology,
     s.math,
-    s.grades.math,
     s.chemistry,
-    s.grades.chemistry,
     s.physics,
-    s.grades.physics,
     s.science,
-    s.grades.science,
     s.dAndT,
-    s.grades.dAndT,
     s.history,
-    s.grades.history,
     s.re,
-    s.grades.re,
     s.civic,
-    s.grades.civic,
-    s.compulsoryTotal,
-    s.compulsoryAverage,
-    s.overallTotal,
     s.overallGradePoints,
   ]);
 
@@ -127,16 +101,16 @@ export function exportToWord(students: StudentResult[], schoolName: string = 'Sc
         <tr>
           <td class="rank">${s.rank}</td>
           <td>${s.name}</td>
-          <td>${s.english} (${s.grades.english})</td>
-          <td>${s.biology} (${s.grades.biology})</td>
-          <td>${s.math} (${s.grades.math})</td>
-          <td>${s.chemistry} (${s.grades.chemistry})</td>
-          <td>${s.physics} (${s.grades.physics})</td>
-          <td>${s.science} (${s.grades.science})</td>
-          <td>${s.dAndT} (${s.grades.dAndT})</td>
-          <td>${s.history} (${s.grades.history})</td>
-          <td>${s.re} (${s.grades.re})</td>
-          <td>${s.civic} (${s.grades.civic})</td>
+          <td>${s.english}</td>
+          <td>${s.biology}</td>
+          <td>${s.math}</td>
+          <td>${s.chemistry}</td>
+          <td>${s.physics}</td>
+          <td>${s.science}</td>
+          <td>${s.dAndT}</td>
+          <td>${s.history}</td>
+          <td>${s.re}</td>
+          <td>${s.civic}</td>
           <td>${s.overallGradePoints}</td>
         </tr>
       `
@@ -510,15 +484,13 @@ export function exportJuniorToExcel(students: JuniorStudentResult[], filename: s
   // Get all optional subject names from first student (they all have the same ordered list)
   const optionalSubjectNames = students[0]?.optionalSubjectNames || [];
 
+  // Headers: scores only, no individual grades
   const headers = [
     'Rank',
     'Name',
     'English',
-    'English Grade',
     'Math',
-    'Math Grade',
-    ...optionalSubjectNames.flatMap(s => [s.charAt(0).toUpperCase() + s.slice(1), `${s.charAt(0).toUpperCase() + s.slice(1)} Grade`]),
-    'Compulsory Average',
+    ...optionalSubjectNames.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
     'Grade Points',
   ];
 
@@ -526,14 +498,8 @@ export function exportJuniorToExcel(students: JuniorStudentResult[], filename: s
     s.rank,
     s.name,
     s.english,
-    s.grades['english'] || '',
     s.math,
-    s.grades['math'] || '',
-    ...optionalSubjectNames.flatMap(subj => [
-      s.optionalSubjects[subj] ?? '',
-      s.grades[subj.toLowerCase()] || ''
-    ]),
-    s.compulsoryAverage,
+    ...optionalSubjectNames.map(subj => s.optionalSubjects[subj] ?? ''),
     s.overallGradePoints,
   ]);
 
@@ -555,6 +521,7 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
 
   const optionalSubjectNames = students[0]?.optionalSubjectNames || [];
 
+  // Export with scores only, no individual grades
   const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -567,7 +534,6 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
     th { background-color: #16a34a; color: white; }
     .header { text-align: center; margin-bottom: 30px; }
     .rank { font-weight: bold; }
-    .best-four { background-color: #dcfce7; }
   </style>
 </head>
 <body>
@@ -585,7 +551,6 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
         <th>Eng</th>
         <th>Math</th>
         ${optionalSubjectNames.map(s => `<th>${s.charAt(0).toUpperCase() + s.slice(1)}</th>`).join('')}
-        <th>Comp. Avg</th>
         <th>Grade Pts</th>
       </tr>
     </thead>
@@ -596,15 +561,12 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
         <tr>
           <td class="rank">${s.rank}</td>
           <td>${s.name}</td>
-          <td>${s.english} (${s.grades['english'] || ''})</td>
-          <td>${s.math} (${s.grades['math'] || ''})</td>
+          <td>${s.english}</td>
+          <td>${s.math}</td>
           ${optionalSubjectNames.map(subj => {
-            const isBestFour = s.bestFourSubjects.includes(subj.toLowerCase());
             const score = s.optionalSubjects[subj] ?? '';
-            const grade = s.grades[subj.toLowerCase()] || '';
-            return `<td class="${isBestFour ? 'best-four' : ''}">${score}${grade ? ` (${grade})` : ''}</td>`;
+            return `<td>${score}</td>`;
           }).join('')}
-          <td>${s.compulsoryAverage}</td>
           <td>${s.overallGradePoints}</td>
         </tr>
       `
@@ -632,10 +594,6 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
       ).join('')}
     </tbody>
   </table>
-  
-  <p style="margin-top: 20px; font-size: 12px; color: #666;">
-    <strong>Note:</strong> Green highlighted cells indicate the best 4 optional subjects used in grade point calculation.
-  </p>
 </body>
 </html>
   `;
