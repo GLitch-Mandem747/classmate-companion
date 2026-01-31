@@ -1,1 +1,4 @@
 project_id = "facospydxxutrztvshmg"
+
+[functions.generate-remarks]
+verify_jwt = false
