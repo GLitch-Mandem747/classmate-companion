@@ -155,6 +155,7 @@ interface StudentTestScores {
   test1: StudentResult | null;
   test2: StudentResult | null;
   test3: StudentResult | null;
+  remark?: string;
 }
 
 function getSubjectScore(result: StudentResult | null, subject: keyof StudentResult): number {
@@ -194,7 +195,8 @@ export function generateReportCardHTML(
   className: string,
   teacherName: string,
   rank: number,
-  totalStudents: number
+  totalStudents: number,
+  remark?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -343,7 +345,7 @@ export function generateReportCardHTML(
       <div style="margin-bottom: 1rem; font-size: 9pt; color: #000;">
         <p style="font-weight: bold; margin: 0 0 4px 0;">CLASS TEACHER'S REMARKS ${teacherName.toUpperCase()}</p>
         <p style="margin: 0; line-height: 1.5; text-align: justify;">
-          _______________________________________________________________________________
+          ${remark || student.remark || '_______________________________________________________________________________'}
         </p>
       </div>
 
@@ -413,7 +415,8 @@ export function exportReportCards(
   schoolName: string,
   term: string,
   className: string,
-  teacherName: string
+  teacherName: string,
+  remarksMap?: Map<string, string>
 ): void {
   // Combine all students from all tests
   const studentMap = new Map<string, StudentTestScores>();
@@ -439,15 +442,19 @@ export function exportReportCards(
   const rankMap = calculateFinalRank(students, totalStudents);
   
   const content = students
-    .map((s) => generateReportCardHTML(
-      s,
-      schoolName,
-      term,
-      className,
-      teacherName,
-      rankMap.get(s.name) || 0,
-      totalStudents
-    ))
+    .map((s) => {
+      const remark = remarksMap?.get(s.name);
+      return generateReportCardHTML(
+        s,
+        schoolName,
+        term,
+        className,
+        teacherName,
+        rankMap.get(s.name) || 0,
+        totalStudents,
+        remark
+      );
+    })
     .join('');
   
   const fullHTML = `

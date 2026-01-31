@@ -14,7 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      classes: {
+        Row: {
+          created_at: string
+          grading_system: string
+          id: string
+          name: string
+          teacher_surname: string
+          term: string | null
+          updated_at: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          grading_system?: string
+          id?: string
+          name: string
+          teacher_surname: string
+          term?: string | null
+          updated_at?: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          grading_system?: string
+          id?: string
+          name?: string
+          teacher_surname?: string
+          term?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          surname: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          surname?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          surname?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      student_remarks: {
+        Row: {
+          ai_generated_remark: string | null
+          approved_remark: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          student_id: string
+          test_number: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated_remark?: string | null
+          approved_remark?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          student_id: string
+          test_number?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated_remark?: string | null
+          approved_remark?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          student_id?: string
+          test_number?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_remarks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          name: string
+          scores: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          name: string
+          scores?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          scores?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
