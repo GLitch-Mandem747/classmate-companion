@@ -3,7 +3,7 @@ import { DataImport } from '@/components/DataImport';
 import { ResultsTable } from '@/components/ResultsTable';
 import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
-import { RemarksPanel } from '@/components/RemarksPanel';
+import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
 import { StudentData, StudentResult, calculateStudentResults } from '@/lib/grading';
 import { TestData, exportReportCards } from '@/lib/export';
 import { Button } from '@/components/ui/button';
@@ -198,7 +198,22 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
             {/* AI Remarks Panel - show when any test data exists */}
             {hasAnyData && latestResults.length > 0 && (
               <RemarksPanel
-                results={latestResults}
+                students={latestResults.map(r => ({
+                  id: r.id,
+                  name: r.name,
+                  overallGradePoints: r.overallGradePoints,
+                  rank: r.rank,
+                  subjects: [
+                    { subject: 'English', score: r.english, grade: r.grades.english },
+                    { subject: 'Mathematics', score: r.math, grade: r.grades.math },
+                    { subject: 'Biology', score: r.biology, grade: r.grades.biology },
+                    { subject: 'Science', score: r.science, grade: r.grades.science },
+                    { subject: 'Civic Education', score: r.civic, grade: r.grades.civic },
+                    { subject: 'Religious Education', score: r.re, grade: r.grades.re },
+                    { subject: 'History', score: r.history, grade: r.grades.history },
+                    { subject: 'Design & Technology', score: r.dAndT, grade: r.grades.dAndT },
+                  ],
+                } as RemarkStudent))}
                 totalStudents={latestResults.length}
                 onRemarksChange={setApprovedRemarks}
               />
