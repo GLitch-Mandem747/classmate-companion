@@ -3,6 +3,7 @@ import { JuniorDataImport } from '@/components/JuniorDataImport';
 import { JuniorResultsTable } from '@/components/JuniorResultsTable';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
 import { exportJuniorToExcel, exportJuniorToWord } from '@/lib/export';
+import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Users, FileText, Check, ArrowLeft, FileSpreadsheet, Download } from 'lucide-react';
@@ -19,11 +20,37 @@ interface JuniorIndexProps {
   onBack: () => void;
 }
 
+function juniorToRemarkStudents(results: JuniorStudentResult[]): RemarkStudent[] {
+  return results.map(r => {
+    const subjects: { subject: string; score: number; grade: string }[] = [
+      { subject: 'English', score: r.english, grade: r.grades['english'] || '' },
+      { subject: 'Mathematics', score: r.math, grade: r.grades['math'] || '' },
+    ];
+    // Add optional subjects
+    r.optionalSubjectNames.forEach(name => {
+      const key = name.toLowerCase();
+      subjects.push({
+        subject: name.charAt(0).toUpperCase() + name.slice(1),
+        score: r.optionalSubjects[name] ?? r.optionalSubjects[key] ?? 0,
+        grade: r.grades[key] || '',
+      });
+    });
+    return {
+      id: r.id,
+      name: r.name,
+      overallGradePoints: r.overallGradePoints,
+      rank: r.rank,
+      subjects,
+    };
+  });
+}
+
 const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const [tests, setTests] = useState<[JuniorTestData | null, JuniorTestData | null, JuniorTestData | null]>([null, null, null]);
   const [activeTest, setActiveTest] = useState<0 | 1 | 2>(0);
   const [testName, setTestName] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [approvedRemarks, setApprovedRemarks] = useState<Map<string, string>>(new Map());
 
   const handleImport = (students: JuniorStudentData[]) => {
     const calculated = calculateJuniorStudentResults(students);
@@ -48,28 +75,24 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const handleClearAll = () => {
     setTests([null, null, null]);
     setShowImport(false);
+    setApprovedRemarks(new Map());
   };
 
   const handleExportExcel = () => {
     if (!currentTest) return;
     exportJuniorToExcel(currentTest.results, currentTest.name.replace(/\s+/g, '_'));
-    toast({
-      title: 'Export Complete',
-      description: 'Results exported to Excel (CSV) file.',
-    });
+    toast({ title: 'Export Complete', description: 'Results exported to Excel (CSV) file.' });
   };
 
   const handleExportWord = () => {
     if (!currentTest) return;
     exportJuniorToWord(currentTest.results, 'Junior School Results');
-    toast({
-      title: 'Export Complete',
-      description: 'Results exported to Word file.',
-    });
+    toast({ title: 'Export Complete', description: 'Results exported to Word file.' });
   };
 
   const currentTest = tests[activeTest];
   const hasAnyData = tests.some(t => t !== null);
+  const latestResults = tests[2]?.results || tests[1]?.results || tests[0]?.results || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,20 +223,11 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Button 
-                        onClick={handleExportExcel}
-                        variant="secondary"
-                        className="w-full"
-                      >
+                      <Button onClick={handleExportExcel} variant="secondary" className="w-full">
                         <FileSpreadsheet className="h-4 w-4 mr-2" />
                         Export to Excel
                       </Button>
-                      
-                      <Button 
-                        onClick={handleExportWord}
-                        variant="secondary"
-                        className="w-full"
-                      >
+                      <Button onClick={handleExportWord} variant="secondary" className="w-full">
                         <FileText className="h-4 w-4 mr-2" />
                         Export to Word
                       </Button>
@@ -231,6 +245,15 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                   Select a test above and click "Import" to add student data
                 </p>
               </Card>
+            )}
+
+            {/* AI Remarks Panel */}
+            {hasAnyData && latestResults.length > 0 && (
+              <RemarksPanel
+                students={juniorToRemarkStudents(latestResults)}
+                totalStudents={latestResults.length}
+                onRemarksChange={setApprovedRemarks}
+              />
             )}
           </div>
           
