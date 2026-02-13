@@ -3,12 +3,14 @@ import { DataImport } from '@/components/DataImport';
 import { ResultsTable } from '@/components/ResultsTable';
 import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
+import { RemarksPanel } from '@/components/RemarksPanel';
 import { StudentData, StudentResult, calculateStudentResults } from '@/lib/grading';
-import { TestData } from '@/lib/export';
+import { TestData, exportReportCards } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { RefreshCw, Users, FileText, Check, ArrowLeft } from 'lucide-react';
+import { RefreshCw, Users, FileText, Check, ArrowLeft, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 
 interface SeniorDashboardProps {
   onBack: () => void;
@@ -19,6 +21,10 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
   const [activeTest, setActiveTest] = useState<0 | 1 | 2>(0);
   const [testName, setTestName] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [approvedRemarks, setApprovedRemarks] = useState<Map<string, string>>(new Map());
+  const [className, setClassName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [term, setTerm] = useState('');
 
   const handleImport = (students: StudentData[]) => {
     const calculated = calculateStudentResults(students);
@@ -43,10 +49,31 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
   const handleClearAll = () => {
     setTests([null, null, null]);
     setShowImport(false);
+    setApprovedRemarks(new Map());
+  };
+
+  const handleExportReportCards = () => {
+    if (!className.trim() || !teacherName.trim() || !term.trim()) {
+      toast({
+        title: 'Missing Info',
+        description: 'Please enter the class name, teacher name, and term before generating report cards.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    exportReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
+    toast({
+      title: 'Report Cards Generated',
+      description: 'Report cards have been downloaded.',
+    });
   };
 
   const currentTest = tests[activeTest];
   const hasAnyData = tests.some(t => t !== null);
+  const allTestsLoaded = tests.every(t => t !== null);
+  
+  // Get the latest test's results for remarks
+  const latestResults = tests[2]?.results || tests[1]?.results || tests[0]?.results || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,6 +94,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       </header>
       
       <main className="container mx-auto px-4 py-8 space-y-6">
+        {/* Test Selection */}
         <Card className="animate-fade-in">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -166,6 +194,59 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
                 </p>
               </Card>
             )}
+
+            {/* AI Remarks Panel - show when any test data exists */}
+            {hasAnyData && latestResults.length > 0 && (
+              <RemarksPanel
+                results={latestResults}
+                totalStudents={latestResults.length}
+                onRemarksChange={setApprovedRemarks}
+              />
+            )}
+
+            {/* Report Card Generation */}
+            {hasAnyData && (
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5 text-primary" />
+                    Generate Report Cards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Class Name</label>
+                      <Input
+                        placeholder="e.g., Form 4A"
+                        value={className}
+                        onChange={(e) => setClassName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Teacher Surname</label>
+                      <Input
+                        placeholder="e.g., Mr. Banda"
+                        value={teacherName}
+                        onChange={(e) => setTeacherName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Term</label>
+                      <Input
+                        placeholder="e.g., Term 1 2026"
+                        value={term}
+                        onChange={(e) => setTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleExportReportCards} className="w-full sm:w-auto">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Report Cards
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
           
           <aside className="space-y-6">
@@ -184,12 +265,13 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
                 </li>
                 <li className="flex gap-2">
                   <span className="text-primary font-bold">3.</span>
-                  View grades & export results
+                  Generate & approve AI remarks
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-primary font-bold">4.</span>
+                  Export report cards
                 </li>
               </ol>
-              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border">
-                Blue = empty • Green = data loaded
-              </p>
             </div>
           </aside>
         </div>
