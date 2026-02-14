@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { JuniorDataImport } from '@/components/JuniorDataImport';
 import { JuniorResultsTable } from '@/components/JuniorResultsTable';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
-import { exportJuniorToExcel, exportJuniorToWord } from '@/lib/export';
+import { exportJuniorToExcel, exportJuniorToWord, exportJuniorReportCards } from '@/lib/export';
 import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,7 +51,9 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
   const [testName, setTestName] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [approvedRemarks, setApprovedRemarks] = useState<Map<string, string>>(new Map());
-
+  const [className, setClassName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [term, setTerm] = useState('');
   const handleImport = (students: JuniorStudentData[]) => {
     const calculated = calculateJuniorStudentResults(students);
     const name = testName.trim() || `Test ${activeTest + 1}`;
@@ -76,6 +78,9 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
     setTests([null, null, null]);
     setShowImport(false);
     setApprovedRemarks(new Map());
+    setClassName('');
+    setTeacherName('');
+    setTerm('');
   };
 
   const handleExportExcel = () => {
@@ -92,6 +97,7 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
 
   const currentTest = tests[activeTest];
   const hasAnyData = tests.some(t => t !== null);
+  const allTestsLoaded = tests.every(t => t !== null);
   const latestResults = tests[2]?.results || tests[1]?.results || tests[0]?.results || [];
 
   return (
@@ -247,13 +253,67 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
               </Card>
             )}
 
-            {/* AI Remarks Panel */}
-            {hasAnyData && latestResults.length > 0 && (
+            {/* AI Remarks Panel - only after all 3 tests imported */}
+            {allTestsLoaded && latestResults.length > 0 && (
               <RemarksPanel
                 students={juniorToRemarkStudents(latestResults)}
                 totalStudents={latestResults.length}
                 onRemarksChange={setApprovedRemarks}
               />
+            )}
+
+            {/* Report Card Generation - only after all 3 tests */}
+            {allTestsLoaded && (
+              <Card className="animate-fade-in">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Download className="h-5 w-5 text-green-500" />
+                    Generate Report Cards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Class Name</label>
+                      <Input
+                        placeholder="e.g., Grade 9A"
+                        value={className}
+                        onChange={(e) => setClassName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Teacher Surname</label>
+                      <Input
+                        placeholder="e.g., Mr. Banda"
+                        value={teacherName}
+                        onChange={(e) => setTeacherName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Term</label>
+                      <Input
+                        placeholder="e.g., Term 1 2026"
+                        value={term}
+                        onChange={(e) => setTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      if (!className.trim() || !teacherName.trim() || !term.trim()) {
+                        toast({ title: 'Missing Info', description: 'Please enter the class name, teacher name, and term.', variant: 'destructive' });
+                        return;
+                      }
+                      exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
+                      toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
+                    }} 
+                    className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Report Cards
+                  </Button>
+                </CardContent>
+              </Card>
             )}
           </div>
           

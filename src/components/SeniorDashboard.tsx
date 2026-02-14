@@ -195,8 +195,8 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
               </Card>
             )}
 
-            {/* AI Remarks Panel - show when any test data exists */}
-            {hasAnyData && latestResults.length > 0 && (
+        {/* AI Remarks Panel - show only when all 3 tests are imported */}
+            {allTestsLoaded && latestResults.length > 0 && (
               <RemarksPanel
                 students={latestResults.map(r => ({
                   id: r.id,
@@ -220,7 +220,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
             )}
 
             {/* Report Card Generation */}
-            {hasAnyData && (
+            {allTestsLoaded && (
               <Card className="animate-fade-in">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
