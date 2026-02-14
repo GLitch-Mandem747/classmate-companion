@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,8 +34,11 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
   const [remarks, setRemarks] = useState<Map<string, StudentRemark>>(new Map());
   const [generatingAll, setGeneratingAll] = useState(false);
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
+  // Use a ref to always have the latest remarks in async callbacks
+  const remarksRef = useRef(remarks);
+  remarksRef.current = remarks;
 
-  const updateParent = (updatedRemarks: Map<string, StudentRemark>) => {
+  const updateParent = useCallback((updatedRemarks: Map<string, StudentRemark>) => {
     const approvedMap = new Map<string, string>();
     updatedRemarks.forEach((remark, name) => {
       if (remark.isApproved) {
@@ -43,16 +46,19 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
       }
     });
     onRemarksChange(approvedMap);
-  };
+  }, [onRemarksChange]);
 
-  const generateRemark = async (student: RemarkStudent) => {
-    const current = remarks.get(student.name) || {
+  const generateRemark = useCallback(async (student: RemarkStudent) => {
+    // Use ref for latest state
+    const currentRemarks = remarksRef.current;
+    const current = currentRemarks.get(student.name) || {
       aiRemark: '', approvedRemark: '', isApproved: false, isEditing: false, isGenerating: false
     };
     
-    const updated = new Map(remarks);
-    updated.set(student.name, { ...current, isGenerating: true });
-    setRemarks(updated);
+    // Set generating state
+    const generating = new Map(currentRemarks);
+    generating.set(student.name, { ...current, isGenerating: true });
+    setRemarks(generating);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-remarks', {
@@ -70,33 +76,35 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
       if (error) throw error;
 
       const remark = data?.remark || 'Unable to generate remark.';
-      const newRemarks = new Map(remarks);
-      newRemarks.set(student.name, {
+      // Use ref again for latest state after async
+      const latestRemarks = new Map(remarksRef.current);
+      latestRemarks.set(student.name, {
         aiRemark: remark,
         approvedRemark: remark,
         isApproved: false,
         isEditing: false,
         isGenerating: false,
       });
-      setRemarks(newRemarks);
+      setRemarks(latestRemarks);
       setExpandedStudent(student.name);
     } catch (err: any) {
       console.error('Error generating remark:', err);
-      const newRemarks = new Map(remarks);
-      newRemarks.set(student.name, { ...current, isGenerating: false });
-      setRemarks(newRemarks);
+      const latestRemarks = new Map(remarksRef.current);
+      const fallback = latestRemarks.get(student.name) || current;
+      latestRemarks.set(student.name, { ...fallback, isGenerating: false });
+      setRemarks(latestRemarks);
       toast({
         title: 'Error',
         description: err?.message || 'Failed to generate remark. Please try again.',
         variant: 'destructive',
       });
     }
-  };
+  }, [totalStudents]);
 
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
     for (const student of students) {
-      const existing = remarks.get(student.name);
+      const existing = remarksRef.current.get(student.name);
       if (!existing?.isApproved) {
         await generateRemark(student);
         await new Promise(r => setTimeout(r, 500));
