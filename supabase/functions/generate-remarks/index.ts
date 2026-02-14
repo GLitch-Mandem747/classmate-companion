@@ -26,12 +26,14 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build context about student performance
     const subjectPerformance = student.subjects
       .map(s => `${s.subject}: ${s.score}% (Grade ${s.grade})`)
       .join(", ");
 
     const rankPercentile = Math.round((1 - (student.rank - 1) / student.totalStudents) * 100);
+    
+    // Determine if student is below average (bottom half of class)
+    const isBelowAverage = student.rank > Math.ceil(student.totalStudents / 2);
     
     let performanceLevel = "excellent";
     if (student.gradePoints > 18) performanceLevel = "needs improvement";
@@ -46,6 +48,10 @@ Your remarks should be:
 - Constructive when improvement is needed
 - Written in third person
 
+IMPORTANT FORMATTING RULES:
+- For below-average students (bottom half of class), ALWAYS start the remark with the student's name. Example: "John has shown..."
+- For above-average students (top half of class), you may start with the student's name OR use alternative openings like "An excellent performer who...", "Demonstrates strong ability in...", "Shows commendable effort in...", etc. Vary your openings naturally.
+
 Never include:
 - Generic phrases like "keep up the good work" without context
 - Negative or discouraging language
@@ -57,6 +63,7 @@ Performance Summary:
 - Overall Grade Points: ${student.gradePoints} (lower is better)
 - Class Position: ${student.rank} out of ${student.totalStudents} students
 - Performance Level: ${performanceLevel}
+- This student is ${isBelowAverage ? 'BELOW AVERAGE (bottom half) - START the remark with their name' : 'ABOVE AVERAGE (top half) - you may start with their name or use an alternative opening'}
 - Subject Scores: ${subjectPerformance}
 
 Write an appropriate 2-3 sentence remark for this student's report card.`;

@@ -612,3 +612,228 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
   link.click();
   URL.revokeObjectURL(link.href);
 }
+
+// Junior Report Card Generation
+
+interface JuniorTestData {
+  name: string;
+  results: JuniorStudentResult[];
+}
+
+interface JuniorStudentTestScores {
+  name: string;
+  test1: JuniorStudentResult | null;
+  test2: JuniorStudentResult | null;
+  test3: JuniorStudentResult | null;
+}
+
+function calculateJuniorFinalRank(students: JuniorStudentTestScores[]): Map<string, number> {
+  const rankMap = new Map<string, number>();
+  const sorted = [...students].sort((a, b) => {
+    const finalA = a.test3 || a.test2 || a.test1;
+    const finalB = b.test3 || b.test2 || b.test1;
+    return (finalA?.overallGradePoints || 99) - (finalB?.overallGradePoints || 99);
+  });
+  sorted.forEach((student, index) => {
+    rankMap.set(student.name, index + 1);
+  });
+  return rankMap;
+}
+
+function generateJuniorReportCardHTML(
+  student: JuniorStudentTestScores,
+  schoolName: string,
+  term: string,
+  className: string,
+  teacherName: string,
+  rank: number,
+  totalStudents: number,
+  remark?: string
+): string {
+  const test1 = student.test1;
+  const test2 = student.test2;
+  const test3 = student.test3;
+  const finalTest = test3 || test2 || test1;
+  const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
+  const optionalSubjectNames = finalTest?.optionalSubjectNames || test2?.optionalSubjectNames || test1?.optionalSubjectNames || [];
+
+  const getScore = (test: JuniorStudentResult | null, subject: string): string => {
+    if (!test) return '';
+    if (subject === 'english') return String(test.english);
+    if (subject === 'math') return String(test.math);
+    const val = test.optionalSubjects[subject] ?? test.optionalSubjects[subject.toLowerCase()];
+    return val !== undefined ? String(val) : '';
+  };
+
+  const subjectRows = [
+    { label: 'ENGLISH', key: 'english' },
+    { label: 'MATHEMATICS', key: 'math' },
+    ...optionalSubjectNames.map(name => ({
+      label: name.toUpperCase(),
+      key: name,
+    })),
+  ];
+
+  const subjectRowsHTML = subjectRows.map(row =>
+    '<tr>' +
+    '<td style="border: 1px solid black; padding: 6px; font-weight: bold;">' + row.label + '</td>' +
+    '<td style="border: 1px solid black; padding: 6px; text-align: center;">' + getScore(test1, row.key) + '</td>' +
+    '<td style="border: 1px solid black; padding: 6px; text-align: center;">' + getScore(test2, row.key) + '</td>' +
+    '<td style="border: 1px solid black; padding: 6px; text-align: center;">' + getScore(test3, row.key) + '</td>' +
+    '</tr>'
+  ).join('');
+
+  return `
+    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: Arial, sans-serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
+      <div style="text-align: center; margin-bottom: 1rem;">
+        <h1 style="font-weight: bold; margin-bottom: 2px; font-size: 16pt; letter-spacing: 0.5px; color: #000;">
+          ${schoolName}
+        </h1>
+        <h2 style="font-weight: bold; margin-bottom: 2px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
+          FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
+        </h2>
+        <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
+          FR. DOMINIC LIM'S MEMORIAL SCHOOL
+        </h3>
+        <p style="margin-bottom: 2px; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
+        <p style="margin-bottom: 4px; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+        <p style="font-size: 8pt; line-height: 1.2; color: #000;">
+          CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
+        </p>
+      </div>
+      <div style="border-top: 2px solid black; margin-bottom: 0.75rem;"></div>
+      <h2 style="font-weight: bold; text-align: center; margin-bottom: 1rem; font-size: 14pt; letter-spacing: 1px; color: #000;">SCHOOL REPORT</h2>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; margin-bottom: 0.75rem; font-size: 9pt; color: #000;">
+        <div style="padding-right: 0.5rem;">
+          <span style="font-weight: bold; display: block; margin-bottom: 2px;">STUDENT NAME</span>
+          <p style="margin: 0;">${student.name.toUpperCase()}</p>
+        </div>
+        <div style="padding: 0 0.5rem;">
+          <span style="font-weight: bold; display: block; margin-bottom: 2px;">CLASS</span>
+          <p style="margin: 0;">${className}</p>
+        </div>
+        <div style="padding-left: 0.5rem;">
+          <span style="font-weight: bold; display: block; margin-bottom: 2px;">ENTRY RESULTS</span>
+          <p style="margin: 0;"></p>
+        </div>
+      </div>
+      <div style="text-align: center; font-weight: bold; margin-bottom: 0.75rem; font-size: 10pt; letter-spacing: 0.5px; color: #000;">${term.toUpperCase()}</div>
+      <table style="width: 100%; margin-bottom: 0.75rem; font-size: 9pt; border-collapse: collapse; color: #000;">
+        <thead>
+          <tr>
+            <th style="border: 2px solid black; padding: 6px; text-align: left; font-weight: bold; background: white; width: 50%;">SUBJECTS</th>
+            <th style="border: 2px solid black; padding: 6px; text-align: center; font-weight: bold; background: white; width: 16.66%;">TEST ONE</th>
+            <th style="border: 2px solid black; padding: 6px; text-align: center; font-weight: bold; background: white; width: 16.66%;">TEST TWO</th>
+            <th style="border: 2px solid black; padding: 6px; text-align: center; font-weight: bold; background: white; width: 16.66%;">END OF TERM</th>
+          </tr>
+        </thead>
+        <tbody>${subjectRowsHTML}</tbody>
+      </table>
+      <div style="margin-bottom: 0.75rem; font-size: 9pt; line-height: 1.6; color: #000;">
+        <p style="font-weight: bold; margin: 0 0 4px 0;">POINTS IN BEST SIX INCLUDING ENGLISH AND MATHEMATICS: ${gradePoints}</p>
+        <p style="font-weight: bold; margin: 0;">POSITION IN CLASS: ${rank} / ${totalStudents}</p>
+      </div>
+      <div style="margin-bottom: 1rem; font-size: 9pt; color: #000;">
+        <p style="font-weight: bold; margin: 0 0 4px 0;">CLASS TEACHER'S REMARKS ${teacherName.toUpperCase()}</p>
+        <p style="margin: 0; line-height: 1.5; text-align: justify;">${remark || '_______________________________________________________________________________'}</p>
+      </div>
+      <div style="margin-bottom: 1.5rem;">
+        <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">Grades are awarded on an 8 point grade scale as follows</p>
+        <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
+          <tbody>
+            <tr>
+              <td style="border: 1px solid black; padding: 4px; font-weight: bold; width: 12%;">Grade</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">1</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">2</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">3</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">4</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">5</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Score</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">85-100</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">75-84</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">70-74</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">65-69</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
+            </tr>
+            <tr>
+              <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Distinction</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Distinction</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 2rem;">
+        <div style="font-size: 9pt; color: #000;">
+          <p style="font-weight: bold; margin: 0 0 3rem 0;">PRINCIPAL</p>
+          <div style="border-top: 1px solid black; padding-top: 4px; width: 180px;"><span style="font-size: 8pt;">Signature</span></div>
+        </div>
+        <div style="font-size: 9pt; color: #000;">
+          <p style="font-weight: bold; margin: 0 0 0.5rem 0;">SCHOOL STAMP</p>
+          <div style="border: 2px solid black; width: 120px; height: 120px;"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function exportJuniorReportCards(
+  tests: [{ name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null],
+  schoolName: string,
+  term: string,
+  className: string,
+  teacherName: string,
+  remarksMap?: Map<string, string>
+): void {
+  const studentMap = new Map<string, JuniorStudentTestScores>();
+  
+  tests.forEach((test, testIndex) => {
+    if (!test) return;
+    test.results.forEach((result) => {
+      const existing = studentMap.get(result.name) || {
+        name: result.name,
+        test1: null,
+        test2: null,
+        test3: null,
+      };
+      if (testIndex === 0) existing.test1 = result;
+      if (testIndex === 1) existing.test2 = result;
+      if (testIndex === 2) existing.test3 = result;
+      studentMap.set(result.name, existing);
+    });
+  });
+  
+  const students = Array.from(studentMap.values());
+  const totalStudents = students.length;
+  const rankMap = calculateJuniorFinalRank(students);
+  
+  const content = students
+    .map((s) => {
+      const remark = remarksMap?.get(s.name);
+      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark);
+    })
+    .join('');
+  
+  const fullHTML = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards - ' + schoolName + '</title><style>@media print { body { margin: 0; padding: 0; } }</style></head><body>' + content + '</body></html>';
+  
+  const blob = new Blob([fullHTML], { type: 'application/msword' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'junior_report_cards_' + term.replace(/\s+/g, '_') + '.doc';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}

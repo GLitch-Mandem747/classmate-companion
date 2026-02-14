@@ -103,14 +103,25 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
 
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
-    for (const student of students) {
+    const allStudents = [...students]; // copy to avoid mutation issues
+    for (let i = 0; i < allStudents.length; i++) {
+      const student = allStudents[i];
       const existing = remarksRef.current.get(student.name);
       if (!existing?.isApproved) {
-        await generateRemark(student);
-        await new Promise(r => setTimeout(r, 500));
+        try {
+          await generateRemark(student);
+        } catch (err) {
+          console.error(`Failed to generate remark for ${student.name}, continuing...`, err);
+        }
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 300));
       }
     }
     setGeneratingAll(false);
+    toast({
+      title: 'Generation Complete',
+      description: `Finished generating remarks for ${allStudents.length} students.`,
+    });
   };
 
   const approveRemark = (name: string) => {
