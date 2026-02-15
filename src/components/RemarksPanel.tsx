@@ -103,27 +103,59 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
 
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
-    const allStudents = [...students]; // copy to avoid mutation issues
+    const allStudents = [...students];
+    let successCount = 0;
+    let failedStudents: string[] = [];
+
     for (let i = 0; i < allStudents.length; i++) {
       const student = allStudents[i];
       const existing = remarksRef.current.get(student.name);
-      if (!existing?.isApproved) {
+      if (existing?.isApproved) {
+        successCount++;
+        continue;
+      }
+
+      let generated = false;
+      // Retry up to 3 times per student
+      for (let attempt = 0; attempt < 3; attempt++) {
         try {
           await generateRemark(student);
+          generated = true;
+          successCount++;
+          break;
         } catch (err) {
-          console.error(`Failed to generate remark for ${student.name}, continuing...`, err);
-        }
-        // Delay to avoid rate limiting
-        if (i < allStudents.length - 1) {
-          await new Promise(r => setTimeout(r, 500));
+          console.error(`Attempt ${attempt + 1} failed for ${student.name}:`, err);
+          if (attempt < 2) {
+            // Wait longer on each retry (1s, 2s)
+            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          }
         }
       }
+
+      if (!generated) {
+        failedStudents.push(student.name);
+      }
+
+      // Delay between students to avoid rate limiting
+      if (i < allStudents.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
+
     setGeneratingAll(false);
-    toast({
-      title: 'Generation Complete',
-      description: `Finished generating remarks for ${allStudents.length} students.`,
-    });
+
+    if (failedStudents.length > 0) {
+      toast({
+        title: 'Generation Partially Complete',
+        description: `Generated ${successCount}/${allStudents.length} remarks. Failed: ${failedStudents.join(', ')}. Try generating individually for failed students.`,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Generation Complete',
+        description: `Successfully generated remarks for all ${allStudents.length} students.`,
+      });
+    }
   };
 
   const approveRemark = (name: string) => {
