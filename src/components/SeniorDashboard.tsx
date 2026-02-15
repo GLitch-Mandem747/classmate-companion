@@ -4,8 +4,9 @@ import { ResultsTable } from '@/components/ResultsTable';
 import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
 import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
+import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { StudentData, StudentResult, calculateStudentResults } from '@/lib/grading';
-import { TestData, exportReportCards } from '@/lib/export';
+import { TestData, exportReportCards, previewSeniorReportCard } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Users, FileText, Check, ArrowLeft, Download } from 'lucide-react';
@@ -255,10 +256,18 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
                       />
                     </div>
                   </div>
-                  <Button onClick={handleExportReportCards} className="w-full sm:w-auto">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Report Cards
-                  </Button>
+                  <div className="flex flex-wrap gap-3">
+                    <Button onClick={handleExportReportCards} className="w-full sm:w-auto">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Report Cards
+                    </Button>
+                    <ReportCardPreview
+                      studentNames={latestResults.map(r => r.name)}
+                      generatePreview={(name) =>
+                        previewSeniorReportCard(tests, name, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term || 'Term', className || 'Class', teacherName || 'Teacher', approvedRemarks)
+                      }
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
