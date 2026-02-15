@@ -217,7 +217,7 @@ export function generateReportCardHTML(
       <!-- Header -->
       <div style="text-align: center; margin-bottom: 1rem;">
         <h1 style="font-weight: bold; margin-bottom: 2px; font-size: 16pt; letter-spacing: 0.5px; color: #000;">
-          ST. DOMINIC'S BOYS SECONDARY SCHOOL
+          ${schoolName}
         </h1>
         <h2 style="font-weight: bold; margin-bottom: 2px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
           FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
@@ -334,7 +334,7 @@ export function generateReportCardHTML(
       <!-- Performance Summary -->
       <div style="margin-bottom: 0.75rem; font-size: 9pt; line-height: 1.6; color: #000;">
         <p style="font-weight: bold; margin: 0 0 4px 0;">
-          POINTS IN BEST SIX INCLUDING ENGLISH AND MATHEMATICS: ${gradePoints}
+          POINTS IN BEST SIX INCLUDING ENGLISH, MATHEMATICS AND BIOLOGY/SCIENCE: ${gradePoints}
         </p>
         <p style="font-weight: bold; margin: 0;">
           POSITION IN CLASS: ${rank} / ${totalStudents}
@@ -352,12 +352,12 @@ export function generateReportCardHTML(
       <!-- Grading Scale -->
       <div style="margin-bottom: 1.5rem;">
         <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">
-          Grades are awarded on an 8 point grade scale as follows
+          Grades are awarded on a 9 point grade scale as follows
         </p>
         <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
           <tbody>
             <tr>
-              <td style="border: 1px solid black; padding: 4px; font-weight: bold; width: 12%;">Grade</td>
+              <td style="border: 1px solid black; padding: 4px; font-weight: bold; width: 10%;">Grade</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">1</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">2</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">3</td>
@@ -366,6 +366,7 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">9</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Score</td>
@@ -376,7 +377,8 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">40-49</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-39</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
@@ -386,6 +388,7 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
             </tr>
@@ -481,6 +484,65 @@ export function exportReportCards(
   link.download = `report_cards_${term.replace(/\s+/g, '_')}.doc`;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+// Preview functions - generate HTML for a single student
+export function previewSeniorReportCard(
+  tests: [TestData | null, TestData | null, TestData | null],
+  studentName: string,
+  schoolName: string,
+  term: string,
+  className: string,
+  teacherName: string,
+  remarksMap?: Map<string, string>
+): string {
+  const studentMap = new Map<string, StudentTestScores>();
+  tests.forEach((test, testIndex) => {
+    if (!test) return;
+    test.results.forEach((result) => {
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
+      if (testIndex === 0) existing.test1 = result;
+      if (testIndex === 1) existing.test2 = result;
+      if (testIndex === 2) existing.test3 = result;
+      studentMap.set(result.name, existing);
+    });
+  });
+  const students = Array.from(studentMap.values());
+  const totalStudents = students.length;
+  const rankMap = calculateFinalRank(students, totalStudents);
+  const student = studentMap.get(studentName);
+  if (!student) return '<p>Student not found</p>';
+  const remark = remarksMap?.get(studentName);
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark);
+}
+
+export function previewJuniorReportCard(
+  tests: [{ name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null],
+  studentName: string,
+  schoolName: string,
+  term: string,
+  className: string,
+  teacherName: string,
+  remarksMap?: Map<string, string>
+): string {
+  const studentMap = new Map<string, JuniorStudentTestScores>();
+  tests.forEach((test, testIndex) => {
+    if (!test) return;
+    test.results.forEach((result) => {
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
+      if (testIndex === 0) existing.test1 = result;
+      if (testIndex === 1) existing.test2 = result;
+      if (testIndex === 2) existing.test3 = result;
+      studentMap.set(result.name, existing);
+    });
+  });
+  const students = Array.from(studentMap.values());
+  const totalStudents = students.length;
+  const rankMap = calculateJuniorFinalRank(students);
+  const student = studentMap.get(studentName);
+  if (!student) return '<p>Student not found</p>';
+  const remark = remarksMap?.get(studentName);
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark);
 }
 
 // Junior Export Functions
@@ -738,11 +800,11 @@ function generateJuniorReportCardHTML(
         <p style="margin: 0; line-height: 1.5; text-align: justify;">${remark || '_______________________________________________________________________________'}</p>
       </div>
       <div style="margin-bottom: 1.5rem;">
-        <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">Grades are awarded on an 8 point grade scale as follows</p>
+        <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">Grades are awarded on a 9 point grade scale as follows</p>
         <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
           <tbody>
             <tr>
-              <td style="border: 1px solid black; padding: 4px; font-weight: bold; width: 12%;">Grade</td>
+              <td style="border: 1px solid black; padding: 4px; font-weight: bold; width: 10%;">Grade</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">1</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">2</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">3</td>
@@ -751,6 +813,7 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">9</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Score</td>
@@ -761,7 +824,8 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">40-49</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-39</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
@@ -771,6 +835,7 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
             </tr>

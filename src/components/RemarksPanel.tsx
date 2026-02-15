@@ -113,8 +113,10 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
         } catch (err) {
           console.error(`Failed to generate remark for ${student.name}, continuing...`, err);
         }
-        // Small delay to avoid rate limiting
-        await new Promise(r => setTimeout(r, 300));
+        // Delay to avoid rate limiting
+        if (i < allStudents.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
       }
     }
     setGeneratingAll(false);

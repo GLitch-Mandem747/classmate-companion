@@ -13,7 +13,8 @@ export const GRADE_SCALE: GradeScale[] = [
   { grade: '5', minScore: 60, maxScore: 64 },
   { grade: '6', minScore: 55, maxScore: 59 },
   { grade: '7', minScore: 50, maxScore: 54 },
-  { grade: '9', minScore: 0, maxScore: 49 },
+  { grade: '8', minScore: 40, maxScore: 49 },
+  { grade: '9', minScore: 0, maxScore: 39 },
 ];
 
 export interface StudentData {

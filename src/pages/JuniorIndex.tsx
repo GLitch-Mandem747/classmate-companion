@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { JuniorDataImport } from '@/components/JuniorDataImport';
 import { JuniorResultsTable } from '@/components/JuniorResultsTable';
 import { JuniorStudentData, JuniorStudentResult, calculateJuniorStudentResults } from '@/lib/juniorGrading';
-import { exportJuniorToExcel, exportJuniorToWord, exportJuniorReportCards } from '@/lib/export';
+import { exportJuniorToExcel, exportJuniorToWord, exportJuniorReportCards, previewJuniorReportCard } from '@/lib/export';
 import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
+import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Users, FileText, Check, ArrowLeft, FileSpreadsheet, Download } from 'lucide-react';
@@ -298,20 +299,28 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                       />
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => {
-                      if (!className.trim() || !teacherName.trim() || !term.trim()) {
-                        toast({ title: 'Missing Info', description: 'Please enter the class name, teacher name, and term.', variant: 'destructive' });
-                        return;
+                  <div className="flex flex-wrap gap-3">
+                    <Button 
+                      onClick={() => {
+                        if (!className.trim() || !teacherName.trim() || !term.trim()) {
+                          toast({ title: 'Missing Info', description: 'Please enter the class name, teacher name, and term.', variant: 'destructive' });
+                          return;
+                        }
+                        exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
+                        toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
+                      }} 
+                      className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Report Cards
+                    </Button>
+                    <ReportCardPreview
+                      studentNames={latestResults.map(r => r.name)}
+                      generatePreview={(name) =>
+                        previewJuniorReportCard(tests, name, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term || 'Term', className || 'Class', teacherName || 'Teacher', approvedRemarks)
                       }
-                      exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
-                      toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
-                    }} 
-                    className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Report Cards
-                  </Button>
+                    />
+                  </div>
                 </CardContent>
               </Card>
             )}
