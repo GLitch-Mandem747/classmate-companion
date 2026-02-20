@@ -34,7 +34,6 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
   const [remarks, setRemarks] = useState<Map<string, StudentRemark>>(new Map());
   const [generatingAll, setGeneratingAll] = useState(false);
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
-  // Use a ref to always have the latest remarks in async callbacks
   const remarksRef = useRef(remarks);
   remarksRef.current = remarks;
 
@@ -48,97 +47,119 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     onRemarksChange(approvedMap);
   }, [onRemarksChange]);
 
-  const generateRemark = useCallback(async (student: RemarkStudent) => {
-    // Use ref for latest state
-    const currentRemarks = remarksRef.current;
-    const current = currentRemarks.get(student.name) || {
-      aiRemark: '', approvedRemark: '', isApproved: false, isEditing: false, isGenerating: false
-    };
-    
-    // Set generating state
-    const generating = new Map(currentRemarks);
-    generating.set(student.name, { ...current, isGenerating: true });
-    setRemarks(generating);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-remarks', {
-        body: {
-          student: {
-            name: student.name,
-            gradePoints: student.overallGradePoints,
-            rank: student.rank,
-            totalStudents,
-            subjects: student.subjects,
-          }
+  // ─── Core API call — THROWS on failure so callers can handle retries ───────
+  const callGenerateApi = useCallback(async (student: RemarkStudent): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('generate-remarks', {
+      body: {
+        student: {
+          name: student.name,
+          gradePoints: student.overallGradePoints,
+          rank: student.rank,
+          totalStudents,
+          subjects: student.subjects,
         }
-      });
+      }
+    });
 
-      if (error) throw error;
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
 
-      const remark = data?.remark || 'Unable to generate remark.';
-      // Use ref again for latest state after async
-      const latestRemarks = new Map(remarksRef.current);
-      latestRemarks.set(student.name, {
+    const remark = data?.remark;
+    if (!remark) throw new Error('Empty remark returned');
+    return remark;
+  }, [totalStudents]);
+
+  // ─── Set a student's generating state ────────────────────────────────────
+  const setStudentGenerating = (studentName: string, isGenerating: boolean) => {
+    setRemarks(prev => {
+      const updated = new Map(prev);
+      const current = updated.get(studentName) || {
+        aiRemark: '', approvedRemark: '', isApproved: false, isEditing: false, isGenerating: false
+      };
+      updated.set(studentName, { ...current, isGenerating });
+      return updated;
+    });
+  };
+
+  // ─── Set a student's remark after successful generation ──────────────────
+  const setStudentRemark = (studentName: string, remark: string) => {
+    setRemarks(prev => {
+      const updated = new Map(prev);
+      updated.set(studentName, {
         aiRemark: remark,
         approvedRemark: remark,
         isApproved: false,
         isEditing: false,
         isGenerating: false,
       });
-      setRemarks(latestRemarks);
+      return updated;
+    });
+  };
+
+  // ─── Single student: called from UI buttons (shows toast on error) ────────
+  const generateRemark = useCallback(async (student: RemarkStudent) => {
+    setStudentGenerating(student.name, true);
+    try {
+      const remark = await callGenerateApi(student);
+      setStudentRemark(student.name, remark);
       setExpandedStudent(student.name);
     } catch (err: any) {
-      console.error('Error generating remark:', err);
-      const latestRemarks = new Map(remarksRef.current);
-      const fallback = latestRemarks.get(student.name) || current;
-      latestRemarks.set(student.name, { ...fallback, isGenerating: false });
-      setRemarks(latestRemarks);
+      console.error('Error generating remark for', student.name, err);
+      setStudentGenerating(student.name, false);
       toast({
         title: 'Error',
         description: err?.message || 'Failed to generate remark. Please try again.',
         variant: 'destructive',
       });
     }
-  }, [totalStudents]);
+  }, [callGenerateApi]);
 
+  // ─── Batch: generates for all students with retry + delay ────────────────
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
+    // Snapshot student list at start — never mutated
     const allStudents = [...students];
     let successCount = 0;
-    let failedStudents: string[] = [];
+    const failedStudents: string[] = [];
 
     for (let i = 0; i < allStudents.length; i++) {
       const student = allStudents[i];
-      const existing = remarksRef.current.get(student.name);
-      if (existing?.isApproved) {
+
+      // Skip already approved
+      if (remarksRef.current.get(student.name)?.isApproved) {
         successCount++;
         continue;
       }
 
+      setStudentGenerating(student.name, true);
+
       let generated = false;
-      // Retry up to 3 times per student
+
+      // Up to 3 attempts per student
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          await generateRemark(student);
+          const remark = await callGenerateApi(student);
+          setStudentRemark(student.name, remark);
           generated = true;
           successCount++;
           break;
-        } catch (err) {
-          console.error(`Attempt ${attempt + 1} failed for ${student.name}:`, err);
+        } catch (err: any) {
+          console.error(`Student ${student.name} attempt ${attempt + 1} failed:`, err?.message);
           if (attempt < 2) {
-            // Wait longer on each retry (1s, 2s)
-            await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            // Exponential backoff: 1.5s, 3s
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
           }
         }
       }
 
       if (!generated) {
+        setStudentGenerating(student.name, false);
         failedStudents.push(student.name);
       }
 
-      // Delay between students to avoid rate limiting
+      // Delay between students to respect rate limits
       if (i < allStudents.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 600));
       }
     }
 
@@ -147,53 +168,72 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     if (failedStudents.length > 0) {
       toast({
         title: 'Generation Partially Complete',
-        description: `Generated ${successCount}/${allStudents.length} remarks. Failed: ${failedStudents.join(', ')}. Try generating individually for failed students.`,
+        description: `Generated ${successCount}/${allStudents.length} remarks. Failed: ${failedStudents.join(', ')}. Click "Generate Remark" individually for failed students.`,
         variant: 'destructive',
       });
     } else {
       toast({
-        title: 'Generation Complete',
-        description: `Successfully generated remarks for all ${allStudents.length} students.`,
+        title: '✅ Generation Complete',
+        description: `Successfully generated remarks for all ${successCount} students.`,
       });
     }
   };
 
   const approveRemark = (name: string) => {
-    const current = remarks.get(name);
-    if (!current) return;
-    const updated = new Map(remarks);
-    updated.set(name, { ...current, isApproved: true, isEditing: false });
-    setRemarks(updated);
-    updateParent(updated);
+    setRemarks(prev => {
+      const current = prev.get(name);
+      if (!current) return prev;
+      const updated = new Map(prev);
+      updated.set(name, { ...current, isApproved: true, isEditing: false });
+      updateParent(updated);
+      return updated;
+    });
   };
 
   const approveAll = () => {
-    const updated = new Map(remarks);
-    updated.forEach((remark, name) => {
-      if (remark.aiRemark && !remark.isGenerating) {
-        updated.set(name, { ...remark, isApproved: true, isEditing: false });
-      }
+    setRemarks(prev => {
+      const updated = new Map(prev);
+      updated.forEach((remark, name) => {
+        if (remark.aiRemark && !remark.isGenerating) {
+          updated.set(name, { ...remark, isApproved: true, isEditing: false });
+        }
+      });
+      updateParent(updated);
+      return updated;
     });
-    setRemarks(updated);
-    updateParent(updated);
   };
 
   const editRemark = (name: string) => {
-    const current = remarks.get(name);
-    if (!current) return;
-    const updated = new Map(remarks);
-    updated.set(name, { ...current, isEditing: true, isApproved: false });
-    setRemarks(updated);
-    updateParent(updated);
+    setRemarks(prev => {
+      const current = prev.get(name);
+      if (!current) return prev;
+      const updated = new Map(prev);
+      updated.set(name, { ...current, isEditing: true, isApproved: false });
+      updateParent(updated);
+      return updated;
+    });
     setExpandedStudent(name);
   };
 
+  const saveEditedRemark = (name: string) => {
+    setRemarks(prev => {
+      const current = prev.get(name);
+      if (!current) return prev;
+      const updated = new Map(prev);
+      updated.set(name, { ...current, isEditing: false, isApproved: true });
+      updateParent(updated);
+      return updated;
+    });
+  };
+
   const updateRemarkText = (name: string, text: string) => {
-    const current = remarks.get(name);
-    if (!current) return;
-    const updated = new Map(remarks);
-    updated.set(name, { ...current, approvedRemark: text });
-    setRemarks(updated);
+    setRemarks(prev => {
+      const current = prev.get(name);
+      if (!current) return prev;
+      const updated = new Map(prev);
+      updated.set(name, { ...current, approvedRemark: text });
+      return updated;
+    });
   };
 
   const approvedCount = Array.from(remarks.values()).filter(r => r.isApproved).length;
@@ -207,14 +247,14 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
           AI Teacher Remarks
         </CardTitle>
         <CardDescription>
-          Generate AI remarks for each student. Review, edit, and approve before adding to report cards.
+          Generate AI remarks for each student (≈15 words each). Review, edit freely, and approve before adding to report cards.
         </CardDescription>
         <div className="flex flex-wrap items-center gap-3 mt-3">
           <Button onClick={generateAllRemarks} disabled={generatingAll} size="sm">
             {generatingAll ? (
-              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating {generatedCount}/{students.length}...</>
             ) : (
-              <><Sparkles className="h-4 w-4 mr-2" /> Generate All</>
+              <><Sparkles className="h-4 w-4 mr-2" /> Generate All ({students.length})</>
             )}
           </Button>
           {generatedCount > 0 && approvedCount < generatedCount && (
@@ -233,7 +273,6 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
         </div>
       </CardHeader>
       <CardContent>
-        {/* Scrollable student list */}
         <div className="max-h-[600px] overflow-y-auto scrollbar-thin space-y-2 pr-1">
           {students.map((student) => {
             const remark = remarks.get(student.name);
@@ -250,7 +289,7 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
                     : 'border-border'
                 }`}
               >
-                {/* Student header row - always visible */}
+                {/* Student header row */}
                 <button
                   onClick={() => setExpandedStudent(isExpanded ? null : student.name)}
                   className="w-full flex items-center justify-between p-3 text-left hover:bg-muted/30 rounded-lg transition-colors"
@@ -273,7 +312,7 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
                         <Check className="h-3 w-3 mr-0.5" /> Approved
                       </Badge>
                     )}
-                    {!remark && !remark?.isGenerating && (
+                    {!remark && (
                       <Badge variant="outline" className="text-[10px] text-muted-foreground">Pending</Badge>
                     )}
                     {isExpanded ? (
@@ -304,29 +343,37 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
                     {remark && !remark.isGenerating && (
                       <div className="space-y-2 pt-3">
                         {remark.isEditing ? (
-                          <Textarea
-                            value={remark.approvedRemark}
-                            onChange={(e) => updateRemarkText(student.name, e.target.value)}
-                            className="text-sm min-h-[80px] bg-background"
-                          />
+                          <div className="space-y-2">
+                            <Textarea
+                              value={remark.approvedRemark}
+                              onChange={(e) => updateRemarkText(student.name, e.target.value)}
+                              className="text-sm min-h-[80px] bg-background"
+                              placeholder="Edit the remark (no word limit when editing)..."
+                            />
+                            <Button size="sm" onClick={() => saveEditedRemark(student.name)} className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90">
+                              <Check className="h-3 w-3 mr-1" /> Save & Approve
+                            </Button>
+                          </div>
                         ) : (
                           <p className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-md leading-relaxed">
                             {remark.approvedRemark}
                           </p>
                         )}
-                        <div className="flex flex-wrap gap-2">
-                          {!remark.isApproved && (
-                            <Button size="sm" onClick={() => approveRemark(student.name)} className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90">
-                              <Check className="h-3 w-3 mr-1" /> Approve
+                        {!remark.isEditing && (
+                          <div className="flex flex-wrap gap-2">
+                            {!remark.isApproved && (
+                              <Button size="sm" onClick={() => approveRemark(student.name)} className="bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90">
+                                <Check className="h-3 w-3 mr-1" /> Approve
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => editRemark(student.name)}>
+                              <Edit2 className="h-3 w-3 mr-1" /> Edit
                             </Button>
-                          )}
-                          <Button size="sm" variant="outline" onClick={() => editRemark(student.name)}>
-                            <Edit2 className="h-3 w-3 mr-1" /> Edit
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => generateRemark(student)}>
-                            <Sparkles className="h-3 w-3 mr-1" /> Regenerate
-                          </Button>
-                        </div>
+                            <Button size="sm" variant="ghost" onClick={() => generateRemark(student)} disabled={remark.isGenerating}>
+                              <Sparkles className="h-3 w-3 mr-1" /> Regenerate
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
