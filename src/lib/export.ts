@@ -743,22 +743,27 @@ function generateJuniorReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: Arial, sans-serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
-      <div style="text-align: center; margin-bottom: 1rem;">
-        <h1 style="font-weight: bold; margin-bottom: 2px; font-size: 16pt; letter-spacing: 0.5px; color: #000;">
-          ${schoolName}
-        </h1>
-        <h2 style="font-weight: bold; margin-bottom: 2px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
-        </h2>
-        <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FR. DOMINIC LIM'S MEMORIAL SCHOOL
-        </h3>
-        <p style="margin-bottom: 2px; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
-        <p style="margin-bottom: 4px; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        <p style="font-size: 8pt; line-height: 1.2; color: #000;">
-          CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
-        </p>
+    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
+      <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
+        <div style="flex-shrink: 0; margin-right: 1rem;">
+          <img src="${logoUri || ''}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+        </div>
+        <div style="flex: 1; text-align: center;">
+          <h1 style="font-weight: bold; margin: 0 0 2px 0; font-size: 16pt; letter-spacing: 0.5px; color: #003366;">
+            ST. DOMINIC'S BOYS SECONDARY SCHOOL
+          </h1>
+          <h2 style="font-weight: bold; margin: 0 0 2px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
+          </h2>
+          <h3 style="font-weight: bold; margin: 0 0 4px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FR. DOMINIC LIM'S MEMORIAL SCHOOL
+          </h3>
+          <p style="margin: 0 0 2px 0; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
+          <p style="margin: 0 0 4px 0; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+          <p style="font-size: 8pt; line-height: 1.2; color: #000; margin: 0;">
+            CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
+          </p>
+        </div>
       </div>
       <div style="border-top: 2px solid black; margin-bottom: 0.75rem;"></div>
       <h2 style="font-weight: bold; text-align: center; margin-bottom: 1rem; font-size: 14pt; letter-spacing: 1px; color: #000;">SCHOOL REPORT</h2>
