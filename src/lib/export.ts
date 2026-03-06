@@ -381,7 +381,7 @@ export function generateReportCardHTML(
       <!-- Grading Scale -->
       <div style="margin-bottom: 1.5rem;">
         <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">
-          Grades are awarded on a 9 point grade scale as follows
+          Grades are awarded on an 8 point grade scale as follows
         </p>
         <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
           <tbody>
@@ -394,7 +394,6 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">5</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">9</td>
             </tr>
             <tr>
@@ -406,8 +405,7 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">40-49</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-39</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
@@ -417,7 +415,6 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
             </tr>
