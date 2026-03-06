@@ -439,26 +439,21 @@ export function generateReportCardHTML(
   `;
 }
 
-export function exportReportCards(
+export async function exportReportCards(
   tests: [TestData | null, TestData | null, TestData | null],
   schoolName: string,
   term: string,
   className: string,
   teacherName: string,
   remarksMap?: Map<string, string>
-): void {
-  // Combine all students from all tests
+): Promise<void> {
+  const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, StudentTestScores>();
   
   tests.forEach((test, testIndex) => {
     if (!test) return;
     test.results.forEach((result) => {
-      const existing = studentMap.get(result.name) || {
-        name: result.name,
-        test1: null,
-        test2: null,
-        test3: null,
-      };
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
       if (testIndex === 0) existing.test1 = result;
       if (testIndex === 1) existing.test2 = result;
       if (testIndex === 2) existing.test3 = result;
@@ -473,36 +468,11 @@ export function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(
-        s,
-        schoolName,
-        term,
-        className,
-        teacherName,
-        rankMap.get(s.name) || 0,
-        totalStudents,
-        remark
-      );
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
     })
     .join('');
   
-  const fullHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Report Cards - ${schoolName}</title>
-  <style>
-    @media print {
-      body { margin: 0; padding: 0; }
-    }
-  </style>
-</head>
-<body>
-  ${content}
-</body>
-</html>
-  `;
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards - ${schoolName}</title><style>@media print { body { margin: 0; padding: 0; } }</style></head><body>${content}</body></html>`;
   
   const blob = new Blob([fullHTML], { type: 'application/msword' });
   const link = document.createElement('a');
