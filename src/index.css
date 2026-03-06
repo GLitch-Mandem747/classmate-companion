@@ -62,6 +62,7 @@
     --grade-5: 38 92% 50%;
     --grade-6: 25 95% 53%;
     --grade-7: 15 90% 55%;
+    /* Grade 8 removed - jumps from 7 to 9 */
     --grade-9: 0 84% 60%;
   }
 
