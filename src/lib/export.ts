@@ -1,6 +1,29 @@
 import { StudentResult, GRADE_SCALE, getGrade } from './grading';
 import { JuniorStudentResult } from './juniorGrading';
 
+// Helper to get the school logo as a base64 data URI for embedded HTML
+let cachedLogoDataUri: string | null = null;
+async function getLogoDataUri(): Promise<string> {
+  if (cachedLogoDataUri) return cachedLogoDataUri;
+  try {
+    const response = await fetch('/images/school-logo.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedLogoDataUri = reader.result as string;
+        resolve(cachedLogoDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
+function getLogoUrl(): string {
+  return '/images/school-logo.png';
+}
 export interface TestData {
   name: string;
   results: StudentResult[];
