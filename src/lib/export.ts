@@ -1,6 +1,29 @@
 import { StudentResult, GRADE_SCALE, getGrade } from './grading';
 import { JuniorStudentResult } from './juniorGrading';
 
+// Helper to get the school logo as a base64 data URI for embedded HTML
+let cachedLogoDataUri: string | null = null;
+async function getLogoDataUri(): Promise<string> {
+  if (cachedLogoDataUri) return cachedLogoDataUri;
+  try {
+    const response = await fetch('/images/school-logo.png');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedLogoDataUri = reader.result as string;
+        resolve(cachedLogoDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
+function getLogoUrl(): string {
+  return '/images/school-logo.png';
+}
 export interface TestData {
   name: string;
   results: StudentResult[];
@@ -196,7 +219,8 @@ export function generateReportCardHTML(
   teacherName: string,
   rank: number,
   totalStudents: number,
-  remark?: string
+  remark?: string,
+  logoUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -213,23 +237,28 @@ export function generateReportCardHTML(
   };
 
   return `
-    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: Arial, sans-serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
-      <!-- Header -->
-      <div style="text-align: center; margin-bottom: 1rem;">
-        <h1 style="font-weight: bold; margin-bottom: 2px; font-size: 16pt; letter-spacing: 0.5px; color: #000;">
-          ${schoolName}
-        </h1>
-        <h2 style="font-weight: bold; margin-bottom: 2px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
-        </h2>
-        <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FR. DOMINIC LIM'S MEMORIAL SCHOOL
-        </h3>
-        <p style="margin-bottom: 2px; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
-        <p style="margin-bottom: 4px; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        <p style="font-size: 8pt; line-height: 1.2; color: #000;">
-          CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
-        </p>
+    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
+      <!-- Header with Logo -->
+      <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
+        <div style="flex-shrink: 0; margin-right: 1rem;">
+          <img src="${logoUri}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+        </div>
+        <div style="flex: 1; text-align: center;">
+          <h1 style="font-weight: bold; margin: 0 0 2px 0; font-size: 16pt; letter-spacing: 0.5px; color: #003366;">
+            ST. DOMINIC'S BOYS SECONDARY SCHOOL
+          </h1>
+          <h2 style="font-weight: bold; margin: 0 0 2px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
+          </h2>
+          <h3 style="font-weight: bold; margin: 0 0 4px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FR. DOMINIC LIM'S MEMORIAL SCHOOL
+          </h3>
+          <p style="margin: 0 0 2px 0; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
+          <p style="margin: 0 0 4px 0; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+          <p style="font-size: 8pt; line-height: 1.2; color: #000; margin: 0;">
+            CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
+          </p>
+        </div>
       </div>
 
       <!-- Horizontal Line -->
@@ -352,7 +381,7 @@ export function generateReportCardHTML(
       <!-- Grading Scale -->
       <div style="margin-bottom: 1.5rem;">
         <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">
-          Grades are awarded on a 9 point grade scale as follows
+          Grades are awarded on an 8 point grade scale as follows
         </p>
         <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
           <tbody>
@@ -365,7 +394,6 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">5</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">9</td>
             </tr>
             <tr>
@@ -377,8 +405,7 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">40-49</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-39</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
@@ -388,7 +415,6 @@ export function generateReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
             </tr>
@@ -413,26 +439,21 @@ export function generateReportCardHTML(
   `;
 }
 
-export function exportReportCards(
+export async function exportReportCards(
   tests: [TestData | null, TestData | null, TestData | null],
   schoolName: string,
   term: string,
   className: string,
   teacherName: string,
   remarksMap?: Map<string, string>
-): void {
-  // Combine all students from all tests
+): Promise<void> {
+  const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, StudentTestScores>();
   
   tests.forEach((test, testIndex) => {
     if (!test) return;
     test.results.forEach((result) => {
-      const existing = studentMap.get(result.name) || {
-        name: result.name,
-        test1: null,
-        test2: null,
-        test3: null,
-      };
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
       if (testIndex === 0) existing.test1 = result;
       if (testIndex === 1) existing.test2 = result;
       if (testIndex === 2) existing.test3 = result;
@@ -447,36 +468,11 @@ export function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(
-        s,
-        schoolName,
-        term,
-        className,
-        teacherName,
-        rankMap.get(s.name) || 0,
-        totalStudents,
-        remark
-      );
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
     })
     .join('');
   
-  const fullHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Report Cards - ${schoolName}</title>
-  <style>
-    @media print {
-      body { margin: 0; padding: 0; }
-    }
-  </style>
-</head>
-<body>
-  ${content}
-</body>
-</html>
-  `;
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards - ${schoolName}</title><style>@media print { body { margin: 0; padding: 0; } }</style></head><body>${content}</body></html>`;
   
   const blob = new Blob([fullHTML], { type: 'application/msword' });
   const link = document.createElement('a');
@@ -513,7 +509,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark);
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
 }
 
 export function previewJuniorReportCard(
@@ -542,7 +538,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark);
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
 }
 
 // Junior Export Functions
@@ -710,7 +706,8 @@ function generateJuniorReportCardHTML(
   teacherName: string,
   rank: number,
   totalStudents: number,
-  remark?: string
+  remark?: string,
+  logoUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -746,22 +743,27 @@ function generateJuniorReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: Arial, sans-serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
-      <div style="text-align: center; margin-bottom: 1rem;">
-        <h1 style="font-weight: bold; margin-bottom: 2px; font-size: 16pt; letter-spacing: 0.5px; color: #000;">
-          ${schoolName}
-        </h1>
-        <h2 style="font-weight: bold; margin-bottom: 2px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
-        </h2>
-        <h3 style="font-weight: bold; margin-bottom: 4px; font-size: 11pt; letter-spacing: 0.3px; color: #000;">
-          FR. DOMINIC LIM'S MEMORIAL SCHOOL
-        </h3>
-        <p style="margin-bottom: 2px; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
-        <p style="margin-bottom: 4px; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        <p style="font-size: 8pt; line-height: 1.2; color: #000;">
-          CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
-        </p>
+    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
+      <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
+        <div style="flex-shrink: 0; margin-right: 1rem;">
+          <img src="${logoUri || ''}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+        </div>
+        <div style="flex: 1; text-align: center;">
+          <h1 style="font-weight: bold; margin: 0 0 2px 0; font-size: 16pt; letter-spacing: 0.5px; color: #003366;">
+            ST. DOMINIC'S BOYS SECONDARY SCHOOL
+          </h1>
+          <h2 style="font-weight: bold; margin: 0 0 2px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)
+          </h2>
+          <h3 style="font-weight: bold; margin: 0 0 4px 0; font-size: 10pt; letter-spacing: 0.3px; color: #000;">
+            FR. DOMINIC LIM'S MEMORIAL SCHOOL
+          </h3>
+          <p style="margin: 0 0 2px 0; font-size: 9pt; color: #000;">P. O. BOX 110214,</p>
+          <p style="margin: 0 0 4px 0; font-size: 9pt; color: #000;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+          <p style="font-size: 8pt; line-height: 1.2; color: #000; margin: 0;">
+            CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: stdominicsboys21@gmail.com
+          </p>
+        </div>
       </div>
       <div style="border-top: 2px solid black; margin-bottom: 0.75rem;"></div>
       <h2 style="font-weight: bold; text-align: center; margin-bottom: 1rem; font-size: 14pt; letter-spacing: 1px; color: #000;">SCHOOL REPORT</h2>
@@ -800,7 +802,7 @@ function generateJuniorReportCardHTML(
         <p style="margin: 0; line-height: 1.5; text-align: justify;">${remark || '_______________________________________________________________________________'}</p>
       </div>
       <div style="margin-bottom: 1.5rem;">
-        <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">Grades are awarded on a 9 point grade scale as follows</p>
+        <p style="font-weight: bold; margin-bottom: 0.5rem; font-size: 9pt; color: #000;">Grades are awarded on an 8 point grade scale as follows</p>
         <table style="width: 100%; font-size: 8pt; border-collapse: collapse; color: #000;">
           <tbody>
             <tr>
@@ -812,7 +814,6 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">5</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">6</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">7</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">8</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">9</td>
             </tr>
             <tr>
@@ -824,8 +825,7 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">60-64</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">55-59</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">50-54</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">40-49</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-39</td>
+              <td style="border: 1px solid black; padding: 4px; text-align: center;">0-49</td>
             </tr>
             <tr>
               <td style="border: 1px solid black; padding: 4px; font-weight: bold;">Description</td>
@@ -835,7 +835,6 @@ function generateJuniorReportCardHTML(
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Merit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Credit</td>
-              <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Pass</td>
               <td style="border: 1px solid black; padding: 4px; text-align: center;">Fail</td>
             </tr>
@@ -856,25 +855,21 @@ function generateJuniorReportCardHTML(
   `;
 }
 
-export function exportJuniorReportCards(
+export async function exportJuniorReportCards(
   tests: [{ name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null],
   schoolName: string,
   term: string,
   className: string,
   teacherName: string,
   remarksMap?: Map<string, string>
-): void {
+): Promise<void> {
+  const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, JuniorStudentTestScores>();
   
   tests.forEach((test, testIndex) => {
     if (!test) return;
     test.results.forEach((result) => {
-      const existing = studentMap.get(result.name) || {
-        name: result.name,
-        test1: null,
-        test2: null,
-        test3: null,
-      };
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
       if (testIndex === 0) existing.test1 = result;
       if (testIndex === 1) existing.test2 = result;
       if (testIndex === 2) existing.test3 = result;
@@ -889,7 +884,7 @@ export function exportJuniorReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark);
+      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
     })
     .join('');
   
