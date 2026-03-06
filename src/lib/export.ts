@@ -706,7 +706,8 @@ function generateJuniorReportCardHTML(
   teacherName: string,
   rank: number,
   totalStudents: number,
-  remark?: string
+  remark?: string,
+  logoUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
