@@ -301,14 +301,14 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <Button 
-                      onClick={() => {
+                      onClick={async () => {
                         if (!className.trim() || !teacherName.trim() || !term.trim()) {
                           toast({ title: 'Missing Info', description: 'Please enter the class name, teacher name, and term.', variant: 'destructive' });
                           return;
                         }
-                        exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
+                        await exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
                         toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
-                      }} 
+                      }}
                       className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
                     >
                       <Download className="h-4 w-4 mr-2" />
