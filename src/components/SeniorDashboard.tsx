@@ -53,7 +53,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
     setApprovedRemarks(new Map());
   };
 
-  const handleExportReportCards = () => {
+  const handleExportReportCards = async () => {
     if (!className.trim() || !teacherName.trim() || !term.trim()) {
       toast({
         title: 'Missing Info',
@@ -62,7 +62,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       });
       return;
     }
-    exportReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
+    await exportReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks);
     toast({
       title: 'Report Cards Generated',
       description: 'Report cards have been downloaded.',
