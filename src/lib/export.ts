@@ -855,25 +855,21 @@ function generateJuniorReportCardHTML(
   `;
 }
 
-export function exportJuniorReportCards(
+export async function exportJuniorReportCards(
   tests: [{ name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null, { name: string; results: JuniorStudentResult[] } | null],
   schoolName: string,
   term: string,
   className: string,
   teacherName: string,
   remarksMap?: Map<string, string>
-): void {
+): Promise<void> {
+  const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, JuniorStudentTestScores>();
   
   tests.forEach((test, testIndex) => {
     if (!test) return;
     test.results.forEach((result) => {
-      const existing = studentMap.get(result.name) || {
-        name: result.name,
-        test1: null,
-        test2: null,
-        test3: null,
-      };
+      const existing = studentMap.get(result.name) || { name: result.name, test1: null, test2: null, test3: null };
       if (testIndex === 0) existing.test1 = result;
       if (testIndex === 1) existing.test2 = result;
       if (testIndex === 2) existing.test3 = result;
@@ -888,7 +884,7 @@ export function exportJuniorReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark);
+      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
     })
     .join('');
   
