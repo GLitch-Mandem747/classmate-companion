@@ -538,7 +538,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark);
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
 }
 
 // Junior Export Functions
