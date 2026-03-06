@@ -303,7 +303,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       
       <footer className="border-t border-border mt-auto py-4">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Senior Grading System • 8-Point Scale • Supports up to 50 students per class
+          Senior Grading System • Grades 1-7 & 9 • Supports up to 50 students per class
         </div>
       </footer>
     </div>
