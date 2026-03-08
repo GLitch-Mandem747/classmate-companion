@@ -29,6 +29,10 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           src={schoolLogo} 
           alt="St. Dominic's Boys Secondary School Logo" 
           className="w-32 h-32 md:w-40 md:h-40 object-contain mb-4"
+          style={{ 
+            filter: 'invert(1) grayscale(1) contrast(1.5)',
+            mixBlendMode: 'screen'
+          }}
         />
         <h1 className="text-2xl md:text-4xl font-bold text-primary tracking-wide text-center px-4">
           ST. DOMINIC'S BOYS SECONDARY SCHOOL
