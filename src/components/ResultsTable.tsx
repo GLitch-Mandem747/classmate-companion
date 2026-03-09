@@ -69,7 +69,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                 <TableHead className="text-center">Hist</TableHead>
                 <TableHead className="text-center">R.E</TableHead>
                 <TableHead className="text-center">Civic</TableHead>
-                <TableHead className="text-center bg-primary/20">Comp. Avg</TableHead>
+                <TableHead className="text-center bg-primary/20">Best 6 Avg</TableHead>
                 <TableHead className="text-center bg-primary/20">Grade Pts</TableHead>
               </TableRow>
             </TableHeader>
@@ -159,7 +159,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
         </ScrollArea>
         
         <p className="text-xs text-muted-foreground mt-4">
-          * Science = (Physics + Chemistry) / 2. Grade Points = Sum of grades for compulsory 4 (Math, English, Biology, Science) + top 2 optional subjects. Lower points = better.
+          * Science = (Physics + Chemistry) / 2. Grade Points = English grade + top 5 optional subjects. Lower points = better.
         </p>
       </CardContent>
     </Card>
