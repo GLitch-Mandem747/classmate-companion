@@ -67,12 +67,12 @@ ${students.map(student => {
     const bestSubject = student.subjects.reduce((best, s) => s.score > best.score ? s : best, student.subjects[0]);
     const weakSubject = student.subjects.reduce((weak, s) => s.score < weak.score ? s : weak, student.subjects[0]);
 
-    return \`Student: ${student.name}
+    return `Student: ${student.name}
 Performance: ${performanceLevel}
 Best subject: ${bestSubject?.subject}
 Needs work: ${weakSubject?.subject}
 Rule for this student: ${isBelowAverage ? `MUST start with "${student.name.split(" ")[0]}"` : "Vary the opening style."}
----\`;
+---`;
 }).join('\n')}
 
 Output ONLY a valid JSON array like this:
