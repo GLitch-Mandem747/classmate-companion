@@ -114,31 +114,27 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     }
   }, [callGenerateApi]);
 
-  // ─── Batch: generates for all students with retry + delay ────────────────
+  // ─── Worker pool: continuous stream without batch pauses ────────────────
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
-    // Snapshot student list at start — never mutated
-    const allStudents = [...students];
-    let successCount = 0;
+    
+    // Build queue of students to process (skip already approved)
+    const queue = students.filter(s => !remarksRef.current.get(s.name)?.isApproved);
+    let queueIndex = 0;
+    let successCount = students.length - queue.length; // Count already approved
     const failedStudents: string[] = [];
-
-    // Process in batches to significantly speed up generation
-    const BATCH_SIZE = 15;
-
-    for (let i = 0; i < allStudents.length; i += BATCH_SIZE) {
-      const batch = allStudents.slice(i, i + BATCH_SIZE);
-      
-      await Promise.all(batch.map(async (student) => {
-        // Skip already approved
-        if (remarksRef.current.get(student.name)?.isApproved) {
-          successCount++;
-          return;
-        }
-
+    
+    // Worker function: continuously pulls next student from queue
+    const worker = async () => {
+      while (true) {
+        const idx = queueIndex++;
+        if (idx >= queue.length) break; // No more students
+        
+        const student = queue[idx];
         setStudentGenerating(student.name, true);
-
+        
         let generated = false;
-
+        
         // Up to 3 attempts per student
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
@@ -150,30 +146,30 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
           } catch (err: any) {
             console.error(`Student ${student.name} attempt ${attempt + 1} failed:`, err?.message);
             if (attempt < 2) {
-              // Exponential backoff: 1.5s, 3s
-              await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+              // Exponential backoff: 1s, 2s
+              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             }
           }
         }
-
+        
         if (!generated) {
           setStudentGenerating(student.name, false);
           failedStudents.push(student.name);
         }
-      }));
-
-      // Very small delay between batches to respect rate limits without noticeable pausing
-      if (i + BATCH_SIZE < allStudents.length) {
-        await new Promise(r => setTimeout(r, 500));
       }
-    }
+    };
+    
+    // Launch 12 concurrent workers - they pull from queue continuously
+    const WORKER_COUNT = 12;
+    const workers = Array(Math.min(WORKER_COUNT, queue.length)).fill(null).map(() => worker());
+    await Promise.all(workers);
 
     setGeneratingAll(false);
 
     if (failedStudents.length > 0) {
       toast({
         title: 'Generation Partially Complete',
-        description: `Generated ${successCount}/${allStudents.length} remarks. Failed: ${failedStudents.join(', ')}. Click "Generate Remark" individually for failed students.`,
+        description: `Generated ${successCount}/${students.length} remarks. Failed: ${failedStudents.join(', ')}. Click "Generate Remark" individually for failed students.`,
         variant: 'destructive',
       });
     } else {
