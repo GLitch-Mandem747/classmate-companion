@@ -209,6 +209,11 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
         <TabsContent value="paste">
           <div className="space-y-4">
+            <div className="text-sm text-muted-foreground bg-green-900/10 p-3 rounded-md">
+              <p className="font-semibold text-green-600 mb-1">Junior Grading System Format:</p>
+              <p className="mb-2">Must start with Name, English, and Math. Then include up to 10 optional subjects:</p>
+              <code className="text-green-600 bg-background px-2 py-1 rounded border border-green-900/20">Name | English | Math | Optional 1 | Optional 2 | ...</code>
+            </div>
             <Textarea
               placeholder={`Paste your data here...\n\nFormat (pipe or tab separated):\n| Name | English | Math | D&T | Biology | Civic Ed | Accounts |\n| John Doe | 90 | 95 | 86 | 86 | 75 | 90 |`}
               value={pastedData}

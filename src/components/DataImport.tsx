@@ -212,9 +212,11 @@ export function DataImport({ onImport }: DataImportProps) {
           
           <TabsContent value="paste" className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Expected format: <code className="text-primary">| Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic |</code>
-              </p>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                <p className="font-semibold mb-1">Senior Grading System Format:</p>
+                <p className="mb-2">The data must include exactly these columns in this specific order:</p>
+                <code className="text-primary bg-background px-2 py-1 rounded border">Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic</code>
+              </div>
               <Textarea
                 placeholder="Paste your student data here..."
                 value={pasteData}
