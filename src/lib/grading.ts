@@ -90,44 +90,37 @@ export function calculateStudentResults(students: StudentData[]): StudentResult[
     // Calculate Science as average of Physics and Chemistry
     const science = (student.physics + student.chemistry) / 2;
     
-    // Compulsory subjects: Math, English, Biology, Science
-    const compulsoryTotal = student.math + student.english + student.biology + science;
-    const compulsoryAverage = compulsoryTotal / 4;
-    
-    // Get grades for compulsory 4
-    const scienceGrade = parseInt(getGrade(science)) || 9;
-    const biologyGrade = parseInt(getGrade(student.biology)) || 9;
-    const mathGrade = parseInt(getGrade(student.math)) || 9;
+    // Compulsory subject: English
     const englishGrade = parseInt(getGrade(student.english)) || 9;
     
-    // Get grades for optional subjects
+    // Get grades for all other subjects
     const optionalGrades = [
-      { name: 'dAndT', grade: parseInt(getGrade(student.dAndT)) || 9 },
-      { name: 'history', grade: parseInt(getGrade(student.history)) || 9 },
-      { name: 're', grade: parseInt(getGrade(student.re)) || 9 },
-      { name: 'civic', grade: parseInt(getGrade(student.civic)) || 9 },
+      { name: 'math', grade: parseInt(getGrade(student.math)) || 9, score: student.math },
+      { name: 'biology', grade: parseInt(getGrade(student.biology)) || 9, score: student.biology },
+      { name: 'science', grade: parseInt(getGrade(science)) || 9, score: science },
+      { name: 'dAndT', grade: parseInt(getGrade(student.dAndT)) || 9, score: student.dAndT },
+      { name: 'history', grade: parseInt(getGrade(student.history)) || 9, score: student.history },
+      { name: 're', grade: parseInt(getGrade(student.re)) || 9, score: student.re },
+      { name: 'civic', grade: parseInt(getGrade(student.civic)) || 9, score: student.civic },
     ];
     
-    // Sort by grade ascending (lower grade number = better) and take top 2
+    // Sort by grade ascending (lower grade number = better) and take top 5
     optionalGrades.sort((a, b) => a.grade - b.grade);
-    const topTwoOptional = optionalGrades.slice(0, 2);
-    const topTwoGradeSum = topTwoOptional.reduce((sum, subj) => sum + subj.grade, 0);
+    const topFiveOptional = optionalGrades.slice(0, 5);
+    const topFiveGradeSum = topFiveOptional.reduce((sum, subj) => sum + subj.grade, 0);
     
-    // Overall grade points = sum of compulsory 4 grades + top 2 optional grades
+    // Overall grade points = English + top 5 optional grades
     // Lower is better (e.g., 6 points = all 1s is excellent)
-    const overallGradePoints = scienceGrade + biologyGrade + mathGrade + englishGrade + topTwoGradeSum;
+    const overallGradePoints = englishGrade + topFiveGradeSum;
     
-    // Overall total for raw scores (compulsory + top 2 optional by score)
-    const nonCompulsoryByScore = [
-      { name: 'dAndT', score: student.dAndT },
-      { name: 'history', score: student.history },
-      { name: 're', score: student.re },
-      { name: 'civic', score: student.civic },
-    ];
-    nonCompulsoryByScore.sort((a, b) => b.score - a.score);
-    const topTwoByScore = nonCompulsoryByScore.slice(0, 2);
-    const topTwoScoreTotal = topTwoByScore.reduce((sum, subj) => sum + subj.score, 0);
-    const overallTotal = compulsoryTotal + topTwoScoreTotal;
+    // Overall total for raw scores (English + top 5 optional by score)
+    const optionalScores = [...optionalGrades].sort((a, b) => b.score - a.score);
+    const topFiveByScore = optionalScores.slice(0, 5);
+    const topFiveScoreTotal = topFiveByScore.reduce((sum, subj) => sum + subj.score, 0);
+    const overallTotal = student.english + topFiveScoreTotal;
+    
+    const compulsoryTotal = student.english;
+    const compulsoryAverage = overallTotal / 6; // Average of English + best 5 subjects
     
     // Build subjects array for report generation
     const subjects: SubjectScore[] = [
