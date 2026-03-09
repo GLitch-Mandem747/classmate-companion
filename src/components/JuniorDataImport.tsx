@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
+import { Upload, FileText, ClipboardPaste, Loader2, Table } from 'lucide-react';
 import { JuniorStudentData, parseJuniorTableData, parseJuniorCSV } from '@/lib/juniorGrading';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -16,6 +16,73 @@ const SAMPLE_DATA = `| Name | English | Math | D&T | Biology | Civic Ed | Accoun
 | John Doe | 90 | 95 | 86 | 86 | 75 | 90 | 82 | 78 |
 | Jane Smith | 85 | 88 | 72 | 90 | 68 | 78 | 85 | 80 |
 | Bob Wilson | 68 | 72 | 65 | 70 | 58 | 62 | 55 | 60 |`;
+
+const JUNIOR_HEADERS = ['Name', 'English', 'Math', 'D&T', 'Biology', 'Civic Ed', 'Accounts', 'History', 'RE'];
+const JUNIOR_PREVIEW_ROWS = [
+  ['John Doe',    '90', '95', '86', '86', '75', '90', '82', '78'],
+  ['Jane Smith',  '85', '88', '72', '90', '68', '78', '85', '80'],
+  ['Bob Wilson',  '68', '72', '65', '70', '58', '62', '55', '60'],
+];
+
+function SpreadsheetPreview({ headers, rows, required, accentClass }: {
+  headers: string[];
+  rows: string[][];
+  required: number; // number of required columns (including Name)
+  accentClass: string;
+}) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-border">
+      <table className="text-xs w-full border-collapse">
+        <thead>
+          <tr>
+            <th className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-normal w-6"></th>
+            {headers.map((h, i) => (
+              <th
+                key={i}
+                className={`border border-border px-2 py-1 text-center font-semibold whitespace-nowrap ${
+                  i === 0
+                    ? 'bg-muted text-muted-foreground'
+                    : i < required
+                    ? `${accentClass} text-foreground`
+                    : 'bg-yellow-500/10 text-foreground'
+                }`}
+              >
+                {h}
+                {i > 0 && i < required && (
+                  <span className="block text-[9px] font-normal text-green-600">required</span>
+                )}
+                {i >= required && (
+                  <span className="block text-[9px] font-normal text-yellow-600">optional</span>
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="odd:bg-background even:bg-muted/30">
+              <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{ri + 2}</td>
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={`border border-border px-2 py-1 text-center font-mono whitespace-nowrap ${ci === 0 ? 'text-left font-medium' : ''}`}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+          <tr className="opacity-40">
+            <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{rows.length + 2}</td>
+            {headers.map((_, i) => (
+              <td key={i} className="border border-border px-2 py-1 text-center text-muted-foreground">…</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
   const sheetName = workbook.SheetNames[0];
@@ -44,9 +111,7 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
 
     headers.forEach((header, idx) => {
       if (header === 'name' || header === 'student') return;
-      
       const value = parseFloat(String(row[idx])) || 0;
-      
       if (header === 'english' || header === 'eng') {
         student.english = value;
       } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
@@ -56,9 +121,7 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
       }
     });
 
-    if (student.name) {
-      students.push(student);
-    }
+    if (student.name) students.push(student);
   }
 
   return students;
@@ -79,28 +142,20 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
         const students = parseExcelData(workbook);
-        if (students.length > 0) {
-          onImport(students);
-        }
+        if (students.length > 0) onImport(students);
       } else if (extension === 'docx') {
         const buffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer: buffer });
         const students = parseJuniorTableData(result.value);
-        if (students.length > 0) {
-          onImport(students);
-        }
+        if (students.length > 0) onImport(students);
       } else if (extension === 'csv') {
         const text = await file.text();
         const students = parseJuniorCSV(text);
-        if (students.length > 0) {
-          onImport(students);
-        }
+        if (students.length > 0) onImport(students);
       } else if (extension === 'txt') {
         const text = await file.text();
         const students = parseJuniorTableData(text);
-        if (students.length > 0) {
-          onImport(students);
-        }
+        if (students.length > 0) onImport(students);
       }
     } catch (error) {
       console.error('Error processing file:', error);
@@ -117,15 +172,12 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
   const handlePasteImport = () => {
     if (!pastedData.trim()) return;
-    
     let students: JuniorStudentData[] = [];
-    
     if (pastedData.includes(',') && !pastedData.includes('|')) {
       students = parseJuniorCSV(pastedData);
     } else {
       students = parseJuniorTableData(pastedData);
     }
-    
     if (students.length > 0) {
       onImport(students);
       setPastedData('');
@@ -134,9 +186,7 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
   const handleLoadSample = () => {
     const students = parseJuniorTableData(SAMPLE_DATA);
-    if (students.length > 0) {
-      onImport(students);
-    }
+    if (students.length > 0) onImport(students);
   };
 
   return (
@@ -148,6 +198,44 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
         </h2>
         <p className="text-sm text-muted-foreground">
           Import student scores from a file or paste data directly using the Junior Grading System format
+        </p>
+      </div>
+
+      {/* Visual format guide */}
+      <div className="rounded-lg border border-green-700/40 bg-green-900/10 p-4 space-y-3 mb-6">
+        <div className="flex items-center gap-2">
+          <Table className="h-4 w-4 text-green-600" />
+          <p className="text-sm font-semibold text-foreground">Required File Format</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Your Excel or Word document must start with <strong>Name, English, and Math</strong> (required), followed by up to 10 optional subject columns. Row 1 is the header; each row after is one student.
+        </p>
+        <SpreadsheetPreview
+          headers={JUNIOR_HEADERS}
+          rows={JUNIOR_PREVIEW_ROWS}
+          required={3}
+          accentClass="bg-green-700/20"
+        />
+        <div className="flex flex-wrap gap-2 pt-1">
+          {JUNIOR_HEADERS.map((h, i) => (
+            <span
+              key={i}
+              className={`text-xs px-2 py-0.5 rounded-full border ${
+                i === 0
+                  ? 'bg-muted border-border text-muted-foreground'
+                  : i < 3
+                  ? 'bg-green-700/20 border-green-700/40 text-green-600'
+                  : 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600'
+              }`}
+            >
+              {i === 0 ? '📋 ' : i < 3 ? '✅ ' : '➕ '}{h}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-600 inline-block"></span> Required columns</span>
+          {'  '}
+          <span className="inline-flex items-center gap-1 ml-3"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> Optional subjects (add as many as needed)</span>
         </p>
       </div>
 
@@ -201,19 +289,11 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
             <p className="text-xs text-muted-foreground mt-3">
               Supports: Excel (.xlsx, .xls), Word (.docx), CSV, TXT
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Columns must start with Name, English, Math, followed by optional subjects.
-            </p>
           </div>
         </TabsContent>
 
         <TabsContent value="paste">
           <div className="space-y-4">
-            <div className="text-sm text-muted-foreground bg-green-900/10 p-3 rounded-md">
-              <p className="font-semibold text-green-600 mb-1">Junior Grading System Format:</p>
-              <p className="mb-2">Must start with Name, English, and Math. Then include up to 10 optional subjects:</p>
-              <code className="text-green-600 bg-background px-2 py-1 rounded border border-green-900/20">Name | English | Math | Optional 1 | Optional 2 | ...</code>
-            </div>
             <Textarea
               placeholder={`Paste your data here...\n\nFormat (pipe or tab separated):\n| Name | English | Math | D&T | Biology | Civic Ed | Accounts |\n| John Doe | 90 | 95 | 86 | 86 | 75 | 90 |`}
               value={pastedData}

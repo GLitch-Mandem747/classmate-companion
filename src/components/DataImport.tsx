@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, Copy } from 'lucide-react';
+import { Upload, FileText, Copy, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,57 @@ const SAMPLE_DATA = `| Name | English | Biology | Math | Chemistry | Physics | D
 | Sarah Williams | 88 | 75 | 80 | 78 | 82 | 70 | 85 | 80 | 75 |
 | David Brown | 45 | 50 | 55 | 48 | 52 | 40 | 45 | 42 | 48 |`;
 
+const SENIOR_HEADERS = ['Name', 'English', 'Biology', 'Math', 'Chemistry', 'Physics', 'D and T', 'History', 'R.E', 'Civic'];
+const SENIOR_PREVIEW_ROWS = [
+  ['John Smith', '78', '82', '85', '76', '80', '72', '68', '75', '70'],
+  ['Jane Doe', '92', '88', '95', '90', '87', '85', '90', '88', '92'],
+  ['Mike Johnson', '65', '70', '72', '68', '65', '60', '55', '62', '58'],
+];
+
+function SpreadsheetPreview({ headers, rows, accentClass }: { headers: string[]; rows: string[][]; accentClass: string }) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-border">
+      <table className="text-xs w-full border-collapse">
+        <thead>
+          <tr>
+            {/* Row number gutter */}
+            <th className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-normal w-6"></th>
+            {headers.map((h, i) => (
+              <th
+                key={i}
+                className={`border border-border px-2 py-1 text-center font-semibold whitespace-nowrap ${i === 0 ? 'bg-muted text-muted-foreground' : `${accentClass} text-foreground`}`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="odd:bg-background even:bg-muted/30">
+              <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{ri + 2}</td>
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={`border border-border px-2 py-1 text-center font-mono whitespace-nowrap ${ci === 0 ? 'text-left font-medium' : ''}`}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+          <tr className="opacity-40">
+            <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{rows.length + 2}</td>
+            {headers.map((_, i) => (
+              <td key={i} className="border border-border px-2 py-1 text-center text-muted-foreground">…</td>
+            ))}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
@@ -29,7 +80,6 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
   
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
-    // Skip header row
     if (i === 0 && row[0]?.toString().toLowerCase().includes('name')) {
       continue;
     }
@@ -66,12 +116,10 @@ export function DataImport({ onImport }: DataImportProps) {
       let students: StudentData[] = [];
       
       if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-        // Handle Excel files
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
         students = parseExcelData(workbook);
       } else if (fileName.endsWith('.docx')) {
-        // Handle Word files
         const buffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer: buffer });
         students = parseTableData(result.value);
@@ -79,7 +127,6 @@ export function DataImport({ onImport }: DataImportProps) {
         const text = await file.text();
         students = parseCSV(text);
       } else {
-        // Handle plain text files
         const text = await file.text();
         students = parseTableData(text);
       }
@@ -111,11 +158,8 @@ export function DataImport({ onImport }: DataImportProps) {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
     const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileUpload(file);
-    }
+    if (file) handleFileUpload(file);
   }, [handleFileUpload]);
 
   const handlePasteImport = () => {
@@ -166,7 +210,34 @@ export function DataImport({ onImport }: DataImportProps) {
           Import student scores from a file or paste data directly using the Senior Grading System format
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+
+        {/* Visual format guide */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Table className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold text-foreground">Required File Format</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Your Excel or Word document must have exactly <strong>10 columns</strong> in this order. Row 1 is the header; each row after is one student.
+          </p>
+          <SpreadsheetPreview
+            headers={SENIOR_HEADERS}
+            rows={SENIOR_PREVIEW_ROWS}
+            accentClass="bg-primary/10"
+          />
+          <div className="flex flex-wrap gap-2 pt-1">
+            {SENIOR_HEADERS.map((h, i) => (
+              <span
+                key={i}
+                className={`text-xs px-2 py-0.5 rounded-full border ${i === 0 ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/10 border-primary/30 text-primary'}`}
+              >
+                {i === 0 ? '📋 ' : `${i}. `}{h}
+              </span>
+            ))}
+          </div>
+        </div>
+
         <Tabs defaultValue="file" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="file">Upload File</TabsTrigger>
@@ -188,11 +259,8 @@ export function DataImport({ onImport }: DataImportProps) {
               <p className="text-foreground font-medium mb-2">
                 {isLoading ? 'Processing file...' : 'Drag & drop your file here'}
               </p>
-              <p className="text-muted-foreground text-sm mb-2">
+              <p className="text-muted-foreground text-sm mb-4">
                 Supports Excel (.xlsx, .xls), Word (.docx), CSV, and TXT files
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Format: Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic
               </p>
               <input
                 type="file"
@@ -211,19 +279,12 @@ export function DataImport({ onImport }: DataImportProps) {
           </TabsContent>
           
           <TabsContent value="paste" className="space-y-4">
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                <p className="font-semibold mb-1">Senior Grading System Format:</p>
-                <p className="mb-2">The data must include exactly these columns in this specific order:</p>
-                <code className="text-primary bg-background px-2 py-1 rounded border">Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic</code>
-              </div>
-              <Textarea
-                placeholder="Paste your student data here..."
-                value={pasteData}
-                onChange={(e) => setPasteData(e.target.value)}
-                className="min-h-[200px] font-mono text-sm"
-              />
-            </div>
+            <Textarea
+              placeholder="Paste your student data here..."
+              value={pasteData}
+              onChange={(e) => setPasteData(e.target.value)}
+              className="min-h-[200px] font-mono text-sm"
+            />
             <div className="flex gap-2">
               <Button onClick={handlePasteImport}>
                 <Copy className="h-4 w-4 mr-2" />
@@ -233,7 +294,7 @@ export function DataImport({ onImport }: DataImportProps) {
           </TabsContent>
         </Tabs>
         
-        <div className="mt-6 pt-6 border-t border-border">
+        <div className="pt-2 border-t border-border">
           <Button variant="outline" onClick={handleLoadSample} className="w-full">
             Load Sample Data (5 Students)
           </Button>
