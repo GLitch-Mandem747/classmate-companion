@@ -201,6 +201,9 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
             <p className="text-xs text-muted-foreground mt-3">
               Supports: Excel (.xlsx, .xls), Word (.docx), CSV, TXT
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Columns must start with Name, English, Math, followed by optional subjects.
+            </p>
           </div>
         </TabsContent>
 
