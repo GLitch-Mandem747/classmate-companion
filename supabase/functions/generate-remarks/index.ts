@@ -55,26 +55,28 @@ STRICT RULES:
 - Single sentence only
 - Return a valid JSON array of objects. Each object MUST have "name" and "remark" properties.`;
 
+    let studentsText = "";
+    for (const student of students) {
+        const isBelowAverage = student.rank > Math.ceil(student.totalStudents / 2);
+        let performanceLevel = "excellent";
+        if (student.gradePoints > 18) performanceLevel = "needs improvement";
+        else if (student.gradePoints > 12) performanceLevel = "satisfactory";
+        else if (student.gradePoints > 8) performanceLevel = "good";
+
+        const bestSubject = student.subjects.reduce((best, s) => s.score > best.score ? s : best, student.subjects[0]);
+        const weakSubject = student.subjects.reduce((weak, s) => s.score < weak.score ? s : weak, student.subjects[0]);
+
+        studentsText += `Student: ${student.name}\n`;
+        studentsText += `Performance: ${performanceLevel}\n`;
+        studentsText += `Best subject: ${bestSubject?.subject}\n`;
+        studentsText += `Needs work: ${weakSubject?.subject}\n`;
+        studentsText += `Rule for this student: ${isBelowAverage ? 'MUST start with "' + student.name.split(" ")[0] + '"' : "Vary the opening style."}\n`;
+        studentsText += `---\n`;
+    }
+
     const userPrompt = `Write a 15-word MAX report card remark for each of the following students based on their performance.
 
-${students.map(student => {
-    const isBelowAverage = student.rank > Math.ceil(student.totalStudents / 2);
-    let performanceLevel = "excellent";
-    if (student.gradePoints > 18) performanceLevel = "needs improvement";
-    else if (student.gradePoints > 12) performanceLevel = "satisfactory";
-    else if (student.gradePoints > 8) performanceLevel = "good";
-
-    const bestSubject = student.subjects.reduce((best, s) => s.score > best.score ? s : best, student.subjects[0]);
-    const weakSubject = student.subjects.reduce((weak, s) => s.score < weak.score ? s : weak, student.subjects[0]);
-
-    return `Student: ${student.name}
-Performance: ${performanceLevel}
-Best subject: ${bestSubject?.subject}
-Needs work: ${weakSubject?.subject}
-Rule for this student: ${isBelowAverage ? `MUST start with "${student.name.split(" ")[0]}"` : "Vary the opening style."}
----`;
-}).join('\n')}
-
+${studentsText}
 Output ONLY a valid JSON array like this:
 [{"name": "Student Name 1", "remark": "The remark 1..."}, {"name": "Student Name 2", "remark": "The remark 2..."}]`;
 
