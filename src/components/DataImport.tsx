@@ -160,10 +160,10 @@ export function DataImport({ onImport }: DataImportProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-primary" />
-          Import Student Data
+          Import Senior Student Data
         </CardTitle>
         <CardDescription>
-          Import student scores from a file or paste data directly
+          Import student scores from a file or paste data directly using the Senior Grading System format
         </CardDescription>
       </CardHeader>
       <CardContent>
