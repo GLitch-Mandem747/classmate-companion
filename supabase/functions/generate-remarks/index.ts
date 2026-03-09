@@ -20,11 +20,23 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const student: StudentData = body.student;
-
-    if (!student || !student.name) {
+    let students: StudentData[] = [];
+    
+    // Support both single and batched requests for backward compatibility
+    if (body.student) {
+      students = [body.student];
+    } else if (body.students && Array.isArray(body.students)) {
+      students = body.students;
+    } else {
       return new Response(
         JSON.stringify({ error: "Invalid student data provided." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (students.length === 0) {
+       return new Response(
+        JSON.stringify({ error: "No students provided." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -34,8 +46,19 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const isBelowAverage = student.rank > Math.ceil(student.totalStudents / 2);
+    const systemPrompt = `You are a school teacher writing very short report card remarks. 
+STRICT RULES:
+- Maximum 15 words ONLY per remark. Never exceed this.
+- Third person (e.g. "John has shown...")
+- No grades or numbers
+- Encouraging but honest
+- Single sentence only
+- Return a valid JSON array of objects. Each object MUST have "name" and "remark" properties.`;
 
+    const userPrompt = `Write a 15-word MAX report card remark for each of the following students based on their performance.
+
+${students.map(student => {
+    const isBelowAverage = student.rank > Math.ceil(student.totalStudents / 2);
     let performanceLevel = "excellent";
     if (student.gradePoints > 18) performanceLevel = "needs improvement";
     else if (student.gradePoints > 12) performanceLevel = "satisfactory";
@@ -44,19 +67,16 @@ serve(async (req) => {
     const bestSubject = student.subjects.reduce((best, s) => s.score > best.score ? s : best, student.subjects[0]);
     const weakSubject = student.subjects.reduce((weak, s) => s.score < weak.score ? s : weak, student.subjects[0]);
 
-    const systemPrompt = `You are a school teacher writing very short report card remarks. 
-STRICT RULES:
-- Maximum 15 words ONLY. Never exceed this.
-- Third person (e.g. "John has shown...")
-- ${isBelowAverage ? `MUST start with the student's first name "${student.name.split(" ")[0]}"` : "May start with the student name or vary the opening"}
-- No grades or numbers
-- Encouraging but honest
-- Single sentence only`;
+    return \`Student: ${student.name}
+Performance: ${performanceLevel}
+Best subject: ${bestSubject?.subject}
+Needs work: ${weakSubject?.subject}
+Rule for this student: ${isBelowAverage ? `MUST start with "${student.name.split(" ")[0]}"` : "Vary the opening style."}
+---\`;
+}).join('\n')}
 
-    const userPrompt = `Write a 15-word MAX report card remark for ${student.name}.
-Performance: ${performanceLevel}. Best subject: ${bestSubject?.subject}. Needs work: ${weakSubject?.subject}.
-${isBelowAverage ? `START with "${student.name.split(" ")[0]}"` : "Vary the opening style."}
-ONE sentence, 15 words maximum.`;
+Output ONLY a valid JSON array like this:
+[{"name": "Student Name 1", "remark": "The remark 1..."}, {"name": "Student Name 2", "remark": "The remark 2..."}]`;
 
     // Retry up to 3 times within the edge function itself
     let lastError: string | null = null;
@@ -74,7 +94,7 @@ ONE sentence, 15 words maximum.`;
               { role: "system", content: systemPrompt },
               { role: "user", content: userPrompt },
             ],
-            max_tokens: 60,
+            max_tokens: students.length * 60,
             temperature: 0.6,
           }),
         });
@@ -109,26 +129,39 @@ ONE sentence, 15 words maximum.`;
         }
 
         const data = await response.json();
-        let remark = data.choices?.[0]?.message?.content?.trim() || "";
+        let content = data.choices?.[0]?.message?.content?.trim() || "[]";
+        
+        // Remove markdown JSON code blocks if present
+        content = content.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
 
-        // Strip quotes if AI wrapped it in them
-        remark = remark.replace(/^["']|["']$/g, "").trim();
-
-        // Hard-cap at 20 words as a safety net
-        const words = remark.split(/\s+/);
-        if (words.length > 20) {
-          remark = words.slice(0, 20).join(" ").replace(/[,;]$/, "") + ".";
+        let remarksArray: {name: string, remark: string}[] = [];
+        try {
+            const parsed = JSON.parse(content);
+            remarksArray = Array.isArray(parsed) ? parsed : (parsed.remarks || []);
+        } catch (e) {
+            console.error("Failed to parse JSON response from AI:", content);
+            throw new Error("Invalid response format from AI");
         }
+        
+        // Clean remarks
+        remarksArray = remarksArray.map(item => {
+            let remark = (item.remark || "").replace(/^["']|["']$/g, "").trim();
+            const words = remark.split(/\s+/);
+            if (words.length > 20) {
+              remark = words.slice(0, 20).join(" ").replace(/[,;]$/, "") + ".";
+            }
+            return { name: item.name, remark };
+        });
 
-        console.log(`Generated remark for ${student.name} (attempt ${attempt + 1}):`, remark);
+        console.log(`Generated remarks for ${remarksArray.length} students (attempt ${attempt + 1})`);
 
         return new Response(
-          JSON.stringify({ remark }),
+          JSON.stringify({ remarks: remarksArray }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (fetchErr) {
         lastError = fetchErr instanceof Error ? fetchErr.message : "Fetch error";
-        console.error(`Fetch attempt ${attempt + 1} failed for ${student.name}:`, lastError);
+        console.error(`Fetch attempt ${attempt + 1} failed:`, lastError);
         if (attempt < 2) {
           await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
         }
