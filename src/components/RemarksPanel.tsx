@@ -135,54 +135,112 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     }
   }, [callGenerateApi]);
 
-  // ─── Worker pool: continuous stream without batch pauses ────────────────
+  // ─── Worker pool: batched requests ────────────────
   const generateAllRemarks = async () => {
     setGeneratingAll(true);
     
     // Build queue of students to process (skip already approved)
     const queue = students.filter(s => !remarksRef.current.get(s.name)?.isApproved);
-    let queueIndex = 0;
+    const BATCH_SIZE = 10;
+    
+    // Set all to generating immediately
+    setRemarks(prev => {
+        const updated = new Map(prev);
+        queue.forEach(s => {
+            const current = updated.get(s.name) || {
+                aiRemark: '', approvedRemark: '', isApproved: false, isEditing: false, isGenerating: false
+            };
+            updated.set(s.name, { ...current, isGenerating: true });
+        });
+        return updated;
+    });
+
     let successCount = students.length - queue.length; // Count already approved
     const failedStudents: string[] = [];
     
-    // Worker function: continuously pulls next student from queue
-    const worker = async () => {
-      while (true) {
-        const idx = queueIndex++;
-        if (idx >= queue.length) break; // No more students
-        
-        const student = queue[idx];
-        setStudentGenerating(student.name, true);
-        
+    // Create batches
+    const chunks: RemarkStudent[][] = [];
+    for (let i = 0; i < queue.length; i += BATCH_SIZE) {
+        chunks.push(queue.slice(i, i + BATCH_SIZE));
+    }
+
+    const processBatch = async (batch: RemarkStudent[]) => {
         let generated = false;
         
-        // Up to 3 attempts per student
         for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            const remark = await callGenerateApi(student);
-            setStudentRemark(student.name, remark);
-            generated = true;
-            successCount++;
-            break;
-          } catch (err: any) {
-            console.error(`Student ${student.name} attempt ${attempt + 1} failed:`, err?.message);
-            if (attempt < 2) {
-              // Exponential backoff: 1s, 2s
-              await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            try {
+                const remarks = await callGenerateBatchApi(batch);
+                
+                setRemarks(prev => {
+                    const updated = new Map(prev);
+                    remarks.forEach((res: any) => {
+                        const student = batch.find(s => s.name === res.name);
+                        if (student) {
+                           updated.set(student.name, {
+                                aiRemark: res.remark,
+                                approvedRemark: res.remark,
+                                isApproved: false,
+                                isEditing: false,
+                                isGenerating: false,
+                           });
+                        }
+                    });
+                    
+                    batch.forEach(student => {
+                         if (!remarks.find((r: any) => r.name === student.name)) {
+                             if (!failedStudents.includes(student.name)) {
+                                 failedStudents.push(student.name);
+                             }
+                             const current = updated.get(student.name);
+                             if (current) {
+                                 updated.set(student.name, { ...current, isGenerating: false });
+                             }
+                         } else {
+                             successCount++;
+                         }
+                    });
+                    return updated;
+                });
+                
+                generated = true;
+                break;
+            } catch (err: any) {
+                console.error(`Batch attempt ${attempt + 1} failed:`, err?.message);
+                if (attempt < 2) {
+                    await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+                }
             }
-          }
         }
         
         if (!generated) {
-          setStudentGenerating(student.name, false);
-          failedStudents.push(student.name);
+            setRemarks(prev => {
+                const updated = new Map(prev);
+                batch.forEach(student => {
+                    if (!failedStudents.includes(student.name)) {
+                        failedStudents.push(student.name);
+                    }
+                    const current = updated.get(student.name);
+                    if (current) {
+                        updated.set(student.name, { ...current, isGenerating: false });
+                    }
+                });
+                return updated;
+            });
         }
-      }
+    };
+
+    // Process up to 3 batches concurrently
+    const worker = async () => {
+        while (chunks.length > 0) {
+             const batch = chunks.shift();
+             if (batch) {
+                 await processBatch(batch);
+             }
+        }
     };
     
-    // Launch 12 concurrent workers - they pull from queue continuously
-    const WORKER_COUNT = 12;
-    const workers = Array(Math.min(WORKER_COUNT, queue.length)).fill(null).map(() => worker());
+    const WORKER_COUNT = 3;
+    const workers = Array(Math.min(WORKER_COUNT, chunks.length)).fill(null).map(() => worker());
     await Promise.all(workers);
 
     setGeneratingAll(false);
@@ -190,7 +248,7 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     if (failedStudents.length > 0) {
       toast({
         title: 'Generation Partially Complete',
-        description: `Generated ${successCount}/${students.length} remarks. Failed: ${failedStudents.join(', ')}. Click "Generate Remark" individually for failed students.`,
+        description: `Generated ${successCount}/${students.length} remarks. Failed: ${failedStudents.length} students. Click "Generate Remark" individually for failed students.`,
         variant: 'destructive',
       });
     } else {
