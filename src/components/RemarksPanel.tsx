@@ -51,22 +51,43 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
   const callGenerateApi = useCallback(async (student: RemarkStudent): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('generate-remarks', {
       body: {
-        student: {
+        students: [{
           name: student.name,
           gradePoints: student.overallGradePoints,
           rank: student.rank,
           totalStudents,
           subjects: student.subjects,
-        }
+        }]
       }
     });
 
     if (error) throw error;
     if (data?.error) throw new Error(data.error);
 
-    const remark = data?.remark;
-    if (!remark) throw new Error('Empty remark returned');
-    return remark;
+    const remarks = data?.remarks;
+    if (!remarks || remarks.length === 0) throw new Error('Empty remark returned');
+    
+    const matching = remarks.find((r: any) => r.name === student.name);
+    return matching ? matching.remark : remarks[0].remark;
+  }, [totalStudents]);
+
+  const callGenerateBatchApi = useCallback(async (batch: RemarkStudent[]): Promise<{name: string, remark: string}[]> => {
+    const { data, error } = await supabase.functions.invoke('generate-remarks', {
+      body: {
+        students: batch.map(student => ({
+          name: student.name,
+          gradePoints: student.overallGradePoints,
+          rank: student.rank,
+          totalStudents,
+          subjects: student.subjects,
+        }))
+      }
+    });
+
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+
+    return data?.remarks || [];
   }, [totalStudents]);
 
   // ─── Set a student's generating state ────────────────────────────────────
