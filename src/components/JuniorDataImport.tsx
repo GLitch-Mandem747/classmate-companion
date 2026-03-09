@@ -141,6 +141,16 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
   return (
     <Card className="p-6 border-green-700">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold flex items-center gap-2 mb-1.5">
+          <Upload className="h-5 w-5 text-green-600" />
+          Import Junior Student Data
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Import student scores from a file or paste data directly using the Junior Grading System format
+        </p>
+      </div>
+
       <Tabs defaultValue="upload" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="upload" className="data-[state=active]:bg-green-700">
