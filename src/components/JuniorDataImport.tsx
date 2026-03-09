@@ -141,6 +141,16 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
   return (
     <Card className="p-6 border-green-700">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold flex items-center gap-2 mb-1.5">
+          <Upload className="h-5 w-5 text-green-600" />
+          Import Junior Student Data
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Import student scores from a file or paste data directly using the Junior Grading System format
+        </p>
+      </div>
+
       <Tabs defaultValue="upload" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="upload" className="data-[state=active]:bg-green-700">
@@ -191,11 +201,19 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
             <p className="text-xs text-muted-foreground mt-3">
               Supports: Excel (.xlsx, .xls), Word (.docx), CSV, TXT
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Columns must start with Name, English, Math, followed by optional subjects.
+            </p>
           </div>
         </TabsContent>
 
         <TabsContent value="paste">
           <div className="space-y-4">
+            <div className="text-sm text-muted-foreground bg-green-900/10 p-3 rounded-md">
+              <p className="font-semibold text-green-600 mb-1">Junior Grading System Format:</p>
+              <p className="mb-2">Must start with Name, English, and Math. Then include up to 10 optional subjects:</p>
+              <code className="text-green-600 bg-background px-2 py-1 rounded border border-green-900/20">Name | English | Math | Optional 1 | Optional 2 | ...</code>
+            </div>
             <Textarea
               placeholder={`Paste your data here...\n\nFormat (pipe or tab separated):\n| Name | English | Math | D&T | Biology | Civic Ed | Accounts |\n| John Doe | 90 | 95 | 86 | 86 | 75 | 90 |`}
               value={pastedData}

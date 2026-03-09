@@ -160,10 +160,10 @@ export function DataImport({ onImport }: DataImportProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-primary" />
-          Import Student Data
+          Import Senior Student Data
         </CardTitle>
         <CardDescription>
-          Import student scores from a file or paste data directly
+          Import student scores from a file or paste data directly using the Senior Grading System format
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -188,8 +188,11 @@ export function DataImport({ onImport }: DataImportProps) {
               <p className="text-foreground font-medium mb-2">
                 {isLoading ? 'Processing file...' : 'Drag & drop your file here'}
               </p>
-              <p className="text-muted-foreground text-sm mb-4">
+              <p className="text-muted-foreground text-sm mb-2">
                 Supports Excel (.xlsx, .xls), Word (.docx), CSV, and TXT files
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Format: Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic
               </p>
               <input
                 type="file"
@@ -209,9 +212,11 @@ export function DataImport({ onImport }: DataImportProps) {
           
           <TabsContent value="paste" className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Expected format: <code className="text-primary">| Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic |</code>
-              </p>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                <p className="font-semibold mb-1">Senior Grading System Format:</p>
+                <p className="mb-2">The data must include exactly these columns in this specific order:</p>
+                <code className="text-primary bg-background px-2 py-1 rounded border">Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic</code>
+              </div>
               <Textarea
                 placeholder="Paste your student data here..."
                 value={pasteData}
