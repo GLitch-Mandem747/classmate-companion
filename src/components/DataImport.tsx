@@ -188,8 +188,11 @@ export function DataImport({ onImport }: DataImportProps) {
               <p className="text-foreground font-medium mb-2">
                 {isLoading ? 'Processing file...' : 'Drag & drop your file here'}
               </p>
-              <p className="text-muted-foreground text-sm mb-4">
+              <p className="text-muted-foreground text-sm mb-2">
                 Supports Excel (.xlsx, .xls), Word (.docx), CSV, and TXT files
+              </p>
+              <p className="text-xs text-muted-foreground mb-4">
+                Format: Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic
               </p>
               <input
                 type="file"
