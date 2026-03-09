@@ -122,44 +122,49 @@ export function RemarksPanel({ students, totalStudents, onRemarksChange, accentC
     let successCount = 0;
     const failedStudents: string[] = [];
 
-    for (let i = 0; i < allStudents.length; i++) {
-      const student = allStudents[i];
+    // Process in batches to significantly speed up generation
+    const BATCH_SIZE = 15;
 
-      // Skip already approved
-      if (remarksRef.current.get(student.name)?.isApproved) {
-        successCount++;
-        continue;
-      }
-
-      setStudentGenerating(student.name, true);
-
-      let generated = false;
-
-      // Up to 3 attempts per student
-      for (let attempt = 0; attempt < 3; attempt++) {
-        try {
-          const remark = await callGenerateApi(student);
-          setStudentRemark(student.name, remark);
-          generated = true;
+    for (let i = 0; i < allStudents.length; i += BATCH_SIZE) {
+      const batch = allStudents.slice(i, i + BATCH_SIZE);
+      
+      await Promise.all(batch.map(async (student) => {
+        // Skip already approved
+        if (remarksRef.current.get(student.name)?.isApproved) {
           successCount++;
-          break;
-        } catch (err: any) {
-          console.error(`Student ${student.name} attempt ${attempt + 1} failed:`, err?.message);
-          if (attempt < 2) {
-            // Exponential backoff: 1.5s, 3s
-            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          return;
+        }
+
+        setStudentGenerating(student.name, true);
+
+        let generated = false;
+
+        // Up to 3 attempts per student
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const remark = await callGenerateApi(student);
+            setStudentRemark(student.name, remark);
+            generated = true;
+            successCount++;
+            break;
+          } catch (err: any) {
+            console.error(`Student ${student.name} attempt ${attempt + 1} failed:`, err?.message);
+            if (attempt < 2) {
+              // Exponential backoff: 1.5s, 3s
+              await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+            }
           }
         }
-      }
 
-      if (!generated) {
-        setStudentGenerating(student.name, false);
-        failedStudents.push(student.name);
-      }
+        if (!generated) {
+          setStudentGenerating(student.name, false);
+          failedStudents.push(student.name);
+        }
+      }));
 
-      // Delay between students to respect rate limits
-      if (i < allStudents.length - 1) {
-        await new Promise(r => setTimeout(r, 600));
+      // Very small delay between batches to respect rate limits without noticeable pausing
+      if (i + BATCH_SIZE < allStudents.length) {
+        await new Promise(r => setTimeout(r, 500));
       }
     }
 
