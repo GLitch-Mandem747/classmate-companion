@@ -69,7 +69,7 @@ export function ResultsTable({ results }: ResultsTableProps) {
                 <TableHead className="text-center">Hist</TableHead>
                 <TableHead className="text-center">R.E</TableHead>
                 <TableHead className="text-center">Civic</TableHead>
-                <TableHead className="text-center bg-primary/20">Comp. Avg</TableHead>
+                <TableHead className="text-center bg-primary/20">Best 6 Avg</TableHead>
                 <TableHead className="text-center bg-primary/20">Grade Pts</TableHead>
               </TableRow>
             </TableHeader>
