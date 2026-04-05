@@ -220,7 +220,8 @@ export function generateReportCardHTML(
   rank: number,
   totalStudents: number,
   remark?: string,
-  logoUri?: string
+  logoUri?: string,
+  mandatorySubjects: string[] = []
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
