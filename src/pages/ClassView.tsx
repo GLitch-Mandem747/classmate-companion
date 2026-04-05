@@ -393,7 +393,7 @@ const ClassView = () => {
               {classData.grading_system === 'junior' && Array.isArray(currentTest) ? (
                 <JuniorResultsTable results={currentTest} />
               ) : !Array.isArray(currentTest) ? (
-                <ResultsTable results={currentTest.results} />
+                <ResultsTable results={currentTest.results} mandatorySubjects={[]} onToggleMandatory={() => {}} />
               ) : null}
 
               {/* AI Remarks Section */}
