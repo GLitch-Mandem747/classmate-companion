@@ -1,4 +1,4 @@
-import { StudentResult, GRADE_SCALE, getGrade } from './grading';
+import { StudentResult, GRADE_SCALE, getGrade, SUBJECT_LABELS } from './grading';
 import { JuniorStudentResult } from './juniorGrading';
 
 // Helper to get the school logo as a base64 data URI for embedded HTML
@@ -220,7 +220,8 @@ export function generateReportCardHTML(
   rank: number,
   totalStudents: number,
   remark?: string,
-  logoUri?: string
+  logoUri?: string,
+  mandatorySubjects: string[] = []
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -229,6 +230,15 @@ export function generateReportCardHTML(
   // Use the final test (test3) for grade points calculation
   const finalTest = test3 || test2 || test1;
   const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
+
+  // Build points label based on mandatory subjects
+  let pointsLabel: string;
+  if (mandatorySubjects.length > 0) {
+    const mandatoryNames = mandatorySubjects.map(k => (SUBJECT_LABELS[k] || k).toUpperCase()).join(', ');
+    pointsLabel = `POINTS IN BEST SIX INCLUDING ${mandatoryNames}`;
+  } else {
+    pointsLabel = 'POINTS IN BEST SIX';
+  }
 
   const getScore = (test: StudentResult | null, subject: keyof StudentResult): string => {
     if (!test) return '';
@@ -363,7 +373,7 @@ export function generateReportCardHTML(
       <!-- Performance Summary -->
       <div style="margin-bottom: 0.75rem; font-size: 9pt; line-height: 1.6; color: #000;">
         <p style="font-weight: bold; margin: 0 0 4px 0;">
-          POINTS IN BEST SIX INCLUDING ENGLISH, MATHEMATICS AND BIOLOGY/SCIENCE: ${gradePoints}
+          ${pointsLabel}: ${gradePoints}
         </p>
         <p style="font-weight: bold; margin: 0;">
           POSITION IN CLASS: ${rank} / ${totalStudents}
@@ -445,7 +455,8 @@ export async function exportReportCards(
   term: string,
   className: string,
   teacherName: string,
-  remarksMap?: Map<string, string>
+  remarksMap?: Map<string, string>,
+  mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, StudentTestScores>();
@@ -468,7 +479,7 @@ export async function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
     })
     .join('');
   
@@ -490,7 +501,8 @@ export function previewSeniorReportCard(
   term: string,
   className: string,
   teacherName: string,
-  remarksMap?: Map<string, string>
+  remarksMap?: Map<string, string>,
+  mandatorySubjects: string[] = []
 ): string {
   const studentMap = new Map<string, StudentTestScores>();
   tests.forEach((test, testIndex) => {
@@ -509,7 +521,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), mandatorySubjects);
 }
 
 export function previewJuniorReportCard(
