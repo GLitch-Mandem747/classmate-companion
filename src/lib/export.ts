@@ -501,7 +501,8 @@ export function previewSeniorReportCard(
   term: string,
   className: string,
   teacherName: string,
-  remarksMap?: Map<string, string>
+  remarksMap?: Map<string, string>,
+  mandatorySubjects: string[] = []
 ): string {
   const studentMap = new Map<string, StudentTestScores>();
   tests.forEach((test, testIndex) => {
