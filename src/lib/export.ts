@@ -231,6 +231,15 @@ export function generateReportCardHTML(
   const finalTest = test3 || test2 || test1;
   const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
 
+  // Build points label based on mandatory subjects
+  let pointsLabel: string;
+  if (mandatorySubjects.length > 0) {
+    const mandatoryNames = mandatorySubjects.map(k => (SUBJECT_LABELS[k] || k).toUpperCase()).join(', ');
+    pointsLabel = `POINTS IN BEST SIX INCLUDING ${mandatoryNames}`;
+  } else {
+    pointsLabel = 'POINTS IN BEST SIX';
+  }
+
   const getScore = (test: StudentResult | null, subject: keyof StudentResult): string => {
     if (!test) return '';
     const value = test[subject];
