@@ -363,7 +363,7 @@ export function generateReportCardHTML(
       <!-- Performance Summary -->
       <div style="margin-bottom: 0.75rem; font-size: 9pt; line-height: 1.6; color: #000;">
         <p style="font-weight: bold; margin: 0 0 4px 0;">
-          POINTS IN BEST SIX INCLUDING ENGLISH, MATHEMATICS AND BIOLOGY/SCIENCE: ${gradePoints}
+          ${pointsLabel}: ${gradePoints}
         </p>
         <p style="font-weight: bold; margin: 0;">
           POSITION IN CLASS: ${rank} / ${totalStudents}
