@@ -75,31 +75,48 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
-  
+  if (data.length < 2) return [];
+
+  // First row is headers - map by name
+  const headers = data[0].map((h: any) => String(h || '').trim());
+  const columnMap: { index: number; key: SeniorSubjectKey }[] = [];
+  let nameIndex = -1;
+
+  headers.forEach((header: string, idx: number) => {
+    const lower = header.toLowerCase();
+    if (lower === 'name' || lower === 'student') {
+      nameIndex = idx;
+      return;
+    }
+    const subjectKey = matchHeaderToSubject(header);
+    if (subjectKey) {
+      columnMap.push({ index: idx, key: subjectKey });
+    }
+  });
+
+  if (nameIndex === -1) nameIndex = 0;
+
   const students: StudentData[] = [];
-  
-  for (let i = 0; i < data.length; i++) {
+  for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (i === 0 && row[0]?.toString().toLowerCase().includes('name')) {
-      continue;
-    }
-    
-    if (row.length >= 10) {
-      students.push({
-        name: row[0]?.toString() || 'Unknown',
-        english: parseFloat(row[1]?.toString()) || 0,
-        biology: parseFloat(row[2]?.toString()) || 0,
-        math: parseFloat(row[3]?.toString()) || 0,
-        chemistry: parseFloat(row[4]?.toString()) || 0,
-        physics: parseFloat(row[5]?.toString()) || 0,
-        dAndT: parseFloat(row[6]?.toString()) || 0,
-        history: parseFloat(row[7]?.toString()) || 0,
-        re: parseFloat(row[8]?.toString()) || 0,
-        civic: parseFloat(row[9]?.toString()) || 0,
-      });
-    }
+    if (!row || row.length < 2) continue;
+
+    const student: StudentData = {
+      name: row[nameIndex]?.toString() || 'Unknown',
+      english: 0, biology: 0, math: 0, chemistry: 0,
+      physics: 0, dAndT: 0, history: 0, re: 0, civic: 0,
+    };
+
+    columnMap.forEach(({ index, key }) => {
+      const val = parseFloat(row[index]?.toString());
+      if (!isNaN(val)) {
+        (student as any)[key] = val;
+      }
+    });
+
+    if (student.name) students.push(student);
   }
-  
+
   return students;
 }
 
