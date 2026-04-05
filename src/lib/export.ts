@@ -1,4 +1,4 @@
-import { StudentResult, GRADE_SCALE, getGrade } from './grading';
+import { StudentResult, GRADE_SCALE, getGrade, SUBJECT_LABELS } from './grading';
 import { JuniorStudentResult } from './juniorGrading';
 
 // Helper to get the school logo as a base64 data URI for embedded HTML
