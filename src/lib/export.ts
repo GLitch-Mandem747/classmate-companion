@@ -455,7 +455,8 @@ export async function exportReportCards(
   term: string,
   className: string,
   teacherName: string,
-  remarksMap?: Map<string, string>
+  remarksMap?: Map<string, string>,
+  mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
   const studentMap = new Map<string, StudentTestScores>();
