@@ -479,7 +479,7 @@ export async function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
     })
     .join('');
   
