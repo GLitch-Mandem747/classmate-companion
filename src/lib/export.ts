@@ -251,7 +251,7 @@ export function generateReportCardHTML(
       <!-- Header with Logo -->
       <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
         <div style="flex-shrink: 0; margin-right: 12px;">
-          <img src="${logoUri}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+          <img src="${logoUri}" alt="School Logo" style="width: 120px; height: 120px; object-fit: contain;" />
         </div>
         <div style="flex: 1; text-align: center; padding-top: 4px;">
           <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">
