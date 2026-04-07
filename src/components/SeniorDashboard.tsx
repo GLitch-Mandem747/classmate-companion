@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 
 interface SeniorDashboardProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {

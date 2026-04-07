@@ -229,31 +229,6 @@ export function DataImport({ onImport }: DataImportProps) {
       </CardHeader>
       <CardContent className="space-y-6">
 
-        {/* Visual format guide */}
-        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Table className="h-4 w-4 text-primary" />
-            <p className="text-sm font-semibold text-foreground">Required File Format</p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Your Excel or Word document must have exactly <strong>10 columns</strong> in this order. Row 1 is the header; each row after is one student.
-          </p>
-          <SpreadsheetPreview
-            headers={SENIOR_HEADERS}
-            rows={SENIOR_PREVIEW_ROWS}
-            accentClass="bg-primary/10"
-          />
-          <div className="flex flex-wrap gap-2 pt-1">
-            {SENIOR_HEADERS.map((h, i) => (
-              <span
-                key={i}
-                className={`text-xs px-2 py-0.5 rounded-full border ${i === 0 ? 'bg-muted border-border text-muted-foreground' : 'bg-primary/10 border-primary/30 text-primary'}`}
-              >
-                {i === 0 ? '📋 ' : `${i}. `}{h}
-              </span>
-            ))}
-          </div>
-        </div>
 
         <Tabs defaultValue="file" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
