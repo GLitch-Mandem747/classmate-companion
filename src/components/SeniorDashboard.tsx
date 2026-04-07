@@ -118,7 +118,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
                 Back
               </Button>
             )}
-            <h1 className="text-2xl font-bold text-primary">Senior Grading System</h1>
+            <h1 className="text-2xl font-bold text-primary">Dashboard</h1>
           </div>
         </div>
       </header>
@@ -287,7 +287,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
 
       <footer className="border-t border-border mt-auto py-4">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Senior Grading System • Grades 1-7 & 9 • Supports up to 50 students per class
+          Grading System • Grades 1-7 & 9 • Supports up to 50 students per class
         </div>
       </footer>
     </div>
