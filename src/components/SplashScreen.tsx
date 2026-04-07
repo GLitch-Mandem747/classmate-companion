@@ -12,7 +12,7 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     const timer = setTimeout(() => {
       setFadeOut(true);
       setTimeout(onComplete, 500);
-    }, 1200);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [onComplete]);
@@ -40,8 +40,8 @@ export const SplashScreen = ({ onComplete }: SplashScreenProps) => {
       </div>
 
       {/* Company Credit - Bottom */}
-      <p className="absolute bottom-8 text-muted-foreground text-sm tracking-widest">
-        KLASSIC CODE SOFTWARE COMPANY
+      <p className="absolute bottom-8 text-foreground text-sm tracking-widest font-bold">
+        SOFTWAREARMY
       </p>
     </div>
   );

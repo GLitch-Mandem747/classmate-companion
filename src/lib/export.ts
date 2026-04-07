@@ -251,7 +251,7 @@ export function generateReportCardHTML(
       <!-- Header with Logo -->
       <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
         <div style="flex-shrink: 0; margin-right: 1rem;">
-          <img src="${logoUri}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+          <img src="${logoUri}" alt="School Logo" style="width: 120px; height: 120px; object-fit: contain;" />
         </div>
         <div style="flex: 1; text-align: center;">
           <h1 style="font-weight: bold; margin: 0 0 2px 0; font-size: 16pt; letter-spacing: 0.5px; color: #003366;">
@@ -758,7 +758,7 @@ function generateJuniorReportCardHTML(
     <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 3rem; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box;">
       <div style="display: flex; align-items: flex-start; margin-bottom: 0.5rem;">
         <div style="flex-shrink: 0; margin-right: 1rem;">
-          <img src="${logoUri || ''}" alt="School Logo" style="width: 90px; height: 90px; object-fit: contain;" />
+          <img src="${logoUri || ''}" alt="School Logo" style="width: 120px; height: 120px; object-fit: contain;" />
         </div>
         <div style="flex: 1; text-align: center;">
           <h1 style="font-weight: bold; margin: 0 0 2px 0; font-size: 16pt; letter-spacing: 0.5px; color: #003366;">
