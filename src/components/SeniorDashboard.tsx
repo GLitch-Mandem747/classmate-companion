@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 
 interface SeniorDashboardProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
@@ -112,10 +112,12 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={onBack} className="text-primary hover:text-primary/80 hover:bg-primary/10">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+            {onBack && (
+              <Button variant="ghost" onClick={onBack} className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            )}
             <h1 className="text-2xl font-bold text-primary">Senior Grading System</h1>
           </div>
         </div>
