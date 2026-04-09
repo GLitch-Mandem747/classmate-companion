@@ -565,7 +565,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), mandatorySubjects);
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), mandatorySubjects, getSignatureUrl(), getStampUrl());
 }
 
 export function previewJuniorReportCard(
@@ -594,7 +594,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), getSignatureUrl(), getStampUrl());
 }
 
 // Junior Export Functions
@@ -923,6 +923,8 @@ export async function exportJuniorReportCards(
   remarksMap?: Map<string, string>
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
+  const signatureUri = await getSignatureDataUri();
+  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, JuniorStudentTestScores>();
   
   tests.forEach((test, testIndex) => {
@@ -943,7 +945,7 @@ export async function exportJuniorReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
+      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, signatureUri, stampUri);
     })
     .join('');
   
