@@ -21,8 +21,54 @@ async function getLogoDataUri(): Promise<string> {
   }
 }
 
+// Helper to get the principal signature as a base64 data URI
+let cachedSignatureDataUri: string | null = null;
+async function getSignatureDataUri(): Promise<string> {
+  if (cachedSignatureDataUri) return cachedSignatureDataUri;
+  try {
+    const response = await fetch('/images/principal-signature.jpg');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedSignatureDataUri = reader.result as string;
+        resolve(cachedSignatureDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
+// Helper to get the school stamp as a base64 data URI
+let cachedStampDataUri: string | null = null;
+async function getStampDataUri(): Promise<string> {
+  if (cachedStampDataUri) return cachedStampDataUri;
+  try {
+    const response = await fetch('/images/school-stamp.jpg');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedStampDataUri = reader.result as string;
+        resolve(cachedStampDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
 function getLogoUrl(): string {
   return '/images/school-logo.png';
+}
+function getSignatureUrl(): string {
+  return '/images/principal-signature.jpg';
+}
+function getStampUrl(): string {
+  return '/images/school-stamp.jpg';
 }
 export interface TestData {
   name: string;
