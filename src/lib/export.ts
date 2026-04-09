@@ -221,7 +221,9 @@ export function generateReportCardHTML(
   totalStudents: number,
   remark?: string,
   logoUri?: string,
-  mandatorySubjects: string[] = []
+  mandatorySubjects: string[] = [],
+  signatureUri?: string,
+  stampUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -713,7 +715,9 @@ function generateJuniorReportCardHTML(
   rank: number,
   totalStudents: number,
   remark?: string,
-  logoUri?: string
+  logoUri?: string,
+  signatureUri?: string,
+  stampUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
