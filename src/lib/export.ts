@@ -430,12 +430,13 @@ export function generateReportCardHTML(
       <!-- Footer -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
         <div>
-          <p style="font-weight: bold; margin: 0 0 40px 0;">PRINCIPAL</p>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" />
           <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
         </div>
         <div style="text-align: right;">
           <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <div style="width: 100px; height: 100px;"></div>
+          <img src="${stampUri}" style="width: 140px; height: auto;" />
         </div>
       </div>
     </div>
@@ -848,12 +849,13 @@ function generateJuniorReportCardHTML(
       </div>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 2rem;">
         <div style="font-size: 9pt; color: #000;">
-          <p style="font-weight: bold; margin: 0 0 3rem 0;">PRINCIPAL</p>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" />
           <div style="border-top: 1px solid black; padding-top: 4px; width: 180px;"><span style="font-size: 8pt;">Signature</span></div>
         </div>
         <div style="font-size: 9pt; color: #000;">
           <p style="font-weight: bold; margin: 0 0 0.5rem 0;">SCHOOL STAMP</p>
-          <div style="border: 2px solid black; width: 120px; height: 120px;"></div>
+          <img src="${stampUri}" style="width: 140px; height: auto;" />
         </div>
       </div>
     </div>
