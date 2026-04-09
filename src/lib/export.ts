@@ -21,8 +21,54 @@ async function getLogoDataUri(): Promise<string> {
   }
 }
 
+// Helper to get the principal signature as a base64 data URI
+let cachedSignatureDataUri: string | null = null;
+async function getSignatureDataUri(): Promise<string> {
+  if (cachedSignatureDataUri) return cachedSignatureDataUri;
+  try {
+    const response = await fetch('/images/principal-signature.jpg');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedSignatureDataUri = reader.result as string;
+        resolve(cachedSignatureDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
+// Helper to get the school stamp as a base64 data URI
+let cachedStampDataUri: string | null = null;
+async function getStampDataUri(): Promise<string> {
+  if (cachedStampDataUri) return cachedStampDataUri;
+  try {
+    const response = await fetch('/images/school-stamp.jpg');
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        cachedStampDataUri = reader.result as string;
+        resolve(cachedStampDataUri);
+      };
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
 function getLogoUrl(): string {
   return '/images/school-logo.png';
+}
+function getSignatureUrl(): string {
+  return '/images/principal-signature.jpg';
+}
+function getStampUrl(): string {
+  return '/images/school-stamp.jpg';
 }
 export interface TestData {
   name: string;
@@ -221,7 +267,9 @@ export function generateReportCardHTML(
   totalStudents: number,
   remark?: string,
   logoUri?: string,
-  mandatorySubjects: string[] = []
+  mandatorySubjects: string[] = [],
+  signatureUri?: string,
+  stampUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -430,12 +478,13 @@ export function generateReportCardHTML(
       <!-- Footer -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
         <div>
-          <p style="font-weight: bold; margin: 0 0 40px 0;">PRINCIPAL</p>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" />
           <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
         </div>
         <div style="text-align: right;">
           <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <div style="width: 100px; height: 100px;"></div>
+          <img src="${stampUri}" style="width: 140px; height: auto;" />
         </div>
       </div>
     </div>
@@ -452,6 +501,8 @@ export async function exportReportCards(
   mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
+  const signatureUri = await getSignatureDataUri();
+  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, StudentTestScores>();
   
   tests.forEach((test, testIndex) => {
@@ -472,7 +523,7 @@ export async function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects, signatureUri, stampUri);
     })
     .join('');
   
@@ -514,7 +565,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), mandatorySubjects);
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), mandatorySubjects, getSignatureUrl(), getStampUrl());
 }
 
 export function previewJuniorReportCard(
@@ -543,7 +594,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl());
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, totalStudents, remark, getLogoUrl(), getSignatureUrl(), getStampUrl());
 }
 
 // Junior Export Functions
@@ -712,7 +763,9 @@ function generateJuniorReportCardHTML(
   rank: number,
   totalStudents: number,
   remark?: string,
-  logoUri?: string
+  logoUri?: string,
+  signatureUri?: string,
+  stampUri?: string
 ): string {
   const test1 = student.test1;
   const test2 = student.test2;
@@ -848,12 +901,13 @@ function generateJuniorReportCardHTML(
       </div>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 2rem;">
         <div style="font-size: 9pt; color: #000;">
-          <p style="font-weight: bold; margin: 0 0 3rem 0;">PRINCIPAL</p>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" />
           <div style="border-top: 1px solid black; padding-top: 4px; width: 180px;"><span style="font-size: 8pt;">Signature</span></div>
         </div>
         <div style="font-size: 9pt; color: #000;">
           <p style="font-weight: bold; margin: 0 0 0.5rem 0;">SCHOOL STAMP</p>
-          <div style="border: 2px solid black; width: 120px; height: 120px;"></div>
+          <img src="${stampUri}" style="width: 140px; height: auto;" />
         </div>
       </div>
     </div>
@@ -869,6 +923,8 @@ export async function exportJuniorReportCards(
   remarksMap?: Map<string, string>
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
+  const signatureUri = await getSignatureDataUri();
+  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, JuniorStudentTestScores>();
   
   tests.forEach((test, testIndex) => {
@@ -889,7 +945,7 @@ export async function exportJuniorReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri);
+      return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, signatureUri, stampUri);
     })
     .join('');
   
