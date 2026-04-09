@@ -455,6 +455,8 @@ export async function exportReportCards(
   mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
+  const signatureUri = await getSignatureDataUri();
+  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, StudentTestScores>();
   
   tests.forEach((test, testIndex) => {
@@ -475,7 +477,7 @@ export async function exportReportCards(
   const content = students
     .map((s) => {
       const remark = remarksMap?.get(s.name);
-      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
+      return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects, signatureUri, stampUri);
     })
     .join('');
   
