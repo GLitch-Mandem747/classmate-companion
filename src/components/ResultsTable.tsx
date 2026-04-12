@@ -22,15 +22,9 @@ function GradeBadge({ grade }: { grade: string }) {
 }
 
 function MandatoryCircle({ 
-  subjectKey, 
-  isMandatory, 
-  onToggle, 
-  disabled 
+  subjectKey, isMandatory, onToggle, disabled 
 }: { 
-  subjectKey: string; 
-  isMandatory: boolean; 
-  onToggle: () => void; 
-  disabled: boolean;
+  subjectKey: string; isMandatory: boolean; onToggle: () => void; disabled: boolean;
 }) {
   return (
     <TooltipProvider>
@@ -62,20 +56,6 @@ function MandatoryCircle({
   );
 }
 
-// Subject columns configuration
-const SUBJECT_COLUMNS = [
-  { key: 'english', label: 'Eng', field: 'english' as const, gradeField: 'english' as const },
-  { key: 'biology', label: 'Bio', field: 'biology' as const, gradeField: 'biology' as const },
-  { key: 'math', label: 'Math', field: 'math' as const, gradeField: 'math' as const },
-  { key: 'chemistry', label: 'Chem', field: 'chemistry' as const, gradeField: 'chemistry' as const },
-  { key: 'physics', label: 'Phys', field: 'physics' as const, gradeField: 'physics' as const },
-  { key: 'science', label: 'Sci*', field: 'science' as const, gradeField: 'science' as const, computed: true },
-  { key: 'dAndT', label: 'D&T', field: 'dAndT' as const, gradeField: 'dAndT' as const },
-  { key: 'history', label: 'Hist', field: 'history' as const, gradeField: 'history' as const },
-  { key: 're', label: 'R.E', field: 're' as const, gradeField: 're' as const },
-  { key: 'civic', label: 'Civic', field: 'civic' as const, gradeField: 'civic' as const },
-];
-
 export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: ResultsTableProps) {
   if (results.length === 0) return null;
 
@@ -85,9 +65,28 @@ export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: 
   const mandatorySet = new Set(mandatorySubjects);
   const maxMandatoryReached = mandatorySubjects.length >= 4;
 
+  // Build subject columns: fixed 5 + science + additional
+  const fixedColumns = [
+    { key: 'english', label: 'Eng' },
+    { key: 'biology', label: 'Bio' },
+    { key: 'math', label: 'Math' },
+    { key: 'chemistry', label: 'Chem' },
+    { key: 'physics', label: 'Phys' },
+    { key: 'science', label: 'Sci*', computed: true },
+  ];
+
+  // Get additional subject names from results
+  const additionalNames = results[0]?.additionalSubjectNames || [];
+
   const pointsLabel = mandatorySubjects.length > 0
     ? `${mandatorySubjects.map(k => SUBJECT_LABELS[k] || k).join(', ')} (mandatory) + best ${6 - mandatorySubjects.length}`
     : 'Best 6 overall';
+
+  const getScore = (student: StudentResult, key: string): number => {
+    if (key === 'science') return student.science;
+    if (key in student) return (student as any)[key] as number;
+    return student.additionalSubjects[key] || 0;
+  };
 
   return (
     <Card className="animate-fade-in">
@@ -120,12 +119,22 @@ export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: 
               <TableRow className="border-b-0">
                 <TableHead className="w-[60px] sticky left-0 bg-secondary z-10"></TableHead>
                 <TableHead className="min-w-[150px] sticky left-[60px] bg-secondary z-10"></TableHead>
-                {SUBJECT_COLUMNS.map((col) => (
+                {fixedColumns.map((col) => (
                   <TableHead key={col.key} className={`text-center ${col.computed ? 'bg-primary/20' : ''}`}>
                     <MandatoryCircle
                       subjectKey={col.key}
                       isMandatory={mandatorySet.has(col.key)}
                       onToggle={() => onToggleMandatory(col.key)}
+                      disabled={maxMandatoryReached}
+                    />
+                  </TableHead>
+                ))}
+                {additionalNames.map((name) => (
+                  <TableHead key={name} className="text-center">
+                    <MandatoryCircle
+                      subjectKey={name}
+                      isMandatory={mandatorySet.has(name)}
+                      onToggle={() => onToggleMandatory(name)}
                       disabled={maxMandatoryReached}
                     />
                   </TableHead>
@@ -137,9 +146,14 @@ export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: 
               <TableRow className="table-header">
                 <TableHead className="w-[60px] sticky left-0 bg-secondary z-10">Rank</TableHead>
                 <TableHead className="min-w-[150px] sticky left-[60px] bg-secondary z-10">Name</TableHead>
-                {SUBJECT_COLUMNS.map((col) => (
+                {fixedColumns.map((col) => (
                   <TableHead key={col.key} className={`text-center ${col.computed ? 'bg-primary/20' : ''}`}>
                     {col.label}
+                  </TableHead>
+                ))}
+                {additionalNames.map((name) => (
+                  <TableHead key={name} className="text-center">
+                    {name.length > 6 ? name.slice(0, 6) + '.' : name}
                   </TableHead>
                 ))}
                 <TableHead className="text-center bg-primary/20">Best 6 Avg</TableHead>
@@ -153,12 +167,25 @@ export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: 
                   <TableRow key={student.id} className="table-row-alt hover:bg-muted/50 transition-colors">
                     <TableCell className="font-bold sticky left-0 bg-card z-10">{student.rank}</TableCell>
                     <TableCell className="font-medium sticky left-[60px] bg-card z-10">{student.name}</TableCell>
-                    {SUBJECT_COLUMNS.map((col) => {
-                      const score = student[col.field as keyof StudentResult] as number;
-                      const grade = student.grades[col.gradeField];
+                    {fixedColumns.map((col) => {
+                      const score = getScore(student, col.key);
+                      const grade = student.grades[col.key] || '9';
                       const isInBest6 = bestSixSet.has(col.key);
                       return (
                         <TableCell key={col.key} className={`text-center ${col.computed ? 'bg-primary/5' : ''} ${isInBest6 ? 'bg-green-500/10' : ''}`}>
+                          <div className="flex flex-col items-center gap-1">
+                            <span>{typeof score === 'number' ? score : 0}</span>
+                            <GradeBadge grade={grade} />
+                          </div>
+                        </TableCell>
+                      );
+                    })}
+                    {additionalNames.map((name) => {
+                      const score = student.additionalSubjects[name] || 0;
+                      const grade = student.grades[name] || '9';
+                      const isInBest6 = bestSixSet.has(name);
+                      return (
+                        <TableCell key={name} className={`text-center ${isInBest6 ? 'bg-green-500/10' : ''}`}>
                           <div className="flex flex-col items-center gap-1">
                             <span>{score}</span>
                             <GradeBadge grade={grade} />
