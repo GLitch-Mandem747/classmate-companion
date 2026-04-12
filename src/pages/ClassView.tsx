@@ -143,23 +143,30 @@ const ClassView = () => {
       let rank = student.rank;
       let totalStudents = 0;
 
-      if ('subjects' in student) {
+      if ('additionalSubjects' in student) {
         // Senior student
-        subjects = student.subjects;
-        gradePoints = student.overallGradePoints;
+        const sr = student as StudentResult;
+        subjects = [
+          { subject: 'English', score: sr.english, grade: sr.grades['english'] || '9' },
+          { subject: 'Biology', score: sr.biology, grade: sr.grades['biology'] || '9' },
+          { subject: 'Math', score: sr.math, grade: sr.grades['math'] || '9' },
+          { subject: 'Chemistry', score: sr.chemistry, grade: sr.grades['chemistry'] || '9' },
+          { subject: 'Physics', score: sr.physics, grade: sr.grades['physics'] || '9' },
+          ...Object.entries(sr.additionalSubjects).map(([subj, score]) => ({
+            subject: subj, score: score as number, grade: sr.grades[subj] || '9'
+          }))
+        ];
+        gradePoints = sr.overallGradePoints;
         totalStudents = tests[activeTest]?.results.length || 0;
       } else {
         // Junior student
-        subjects = [
-          { subject: 'English', score: student.english, grade: student.grades['english'] },
-          { subject: 'Math', score: student.math, grade: student.grades['math'] },
-          ...Object.entries(student.optionalSubjects).map(([subj, score]) => ({
-            subject: subj,
-            score,
-            grade: student.grades[subj.toLowerCase()] || '9'
-          }))
-        ];
-        gradePoints = student.overallGradePoints;
+        const jr = student as JuniorStudentResult;
+        subjects = jr.subjectNames.map(name => ({
+          subject: name,
+          score: jr.subjects[name] || 0,
+          grade: jr.grades[name] || '9'
+        }));
+        gradePoints = jr.overallGradePoints;
         totalStudents = juniorTests[activeTest]?.length || 0;
       }
 
@@ -391,7 +398,7 @@ const ClassView = () => {
           <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
             <div className="space-y-6">
               {classData.grading_system === 'junior' && Array.isArray(currentTest) ? (
-                <JuniorResultsTable results={currentTest} />
+                <JuniorResultsTable results={currentTest} mandatorySubjects={[]} onToggleMandatory={() => {}} />
               ) : !Array.isArray(currentTest) ? (
                 <ResultsTable results={currentTest.results} mandatorySubjects={[]} onToggleMandatory={() => {}} />
               ) : null}

@@ -1,39 +1,25 @@
-// Junior grading system - Same scale as senior but different subject structure
-// Required: English, Math (mandatory)
-// Optional: Up to 10 additional subjects (best 4 counted)
+// Junior grading system - fully flexible subjects
+// All subjects are dynamic - user chooses mandatory via UI
 
 export interface JuniorStudentData {
   name: string;
-  english: number;
-  math: number;
-  optionalSubjects: Record<string, number>;
-}
-
-export interface JuniorSubjectScore {
-  subject: string;
-  score: number;
-  grade: string;
-  gradePoints: number;
+  subjects: Record<string, number>;
+  subjectNames: string[]; // Ordered list of subject names
 }
 
 export interface JuniorStudentResult {
   id: string;
   name: string;
-  english: number;
-  math: number;
-  optionalSubjects: Record<string, number>;
-  optionalSubjectNames: string[]; // Ordered list of optional subject names
+  subjects: Record<string, number>;
+  subjectNames: string[];
   grades: Record<string, string>;
   gradePoints: Record<string, number>;
-  mandatoryPoints: number; // Math + English grade points
-  bestFourOptionalPoints: number; // Best 4 optional subjects
-  bestFourSubjects: string[]; // Names of best 4 subjects used
-  overallGradePoints: number; // Total = mandatory + best 4 optional
-  compulsoryAverage: number; // Average of English + Math scores
+  overallGradePoints: number; // Sum of best 6 (or mandatory + best remaining)
+  bestSixSubjects: string[]; // Keys of subjects in the best 6
+  compulsoryAverage: number;
   rank: number;
 }
 
-// Same grading scale as senior
 const GRADE_SCALE = [
   { grade: '1', minScore: 85, maxScore: 100 },
   { grade: '2', minScore: 75, maxScore: 84 },
@@ -55,84 +41,76 @@ export const getGrade = (score: number): string => {
 };
 
 export const getGradePoints = (score: number): number => {
-  const grade = parseInt(getGrade(score));
-  return grade;
+  const grade = getGrade(score);
+  return grade === '9' ? 9 : parseInt(grade);
 };
 
-export const calculateJuniorStudentResults = (students: JuniorStudentData[]): JuniorStudentResult[] => {
-  // Collect all optional subject names across all students for consistent ordering
-  const allOptionalSubjects = new Set<string>();
-  students.forEach(student => {
-    Object.keys(student.optionalSubjects).forEach(key => allOptionalSubjects.add(key));
-  });
-  const orderedOptionalSubjects = Array.from(allOptionalSubjects).sort();
+export const calculateJuniorStudentResults = (
+  students: JuniorStudentData[],
+  mandatorySubjects: string[] = []
+): JuniorStudentResult[] => {
+  // Collect all subject names
+  const allSubjectNames = new Set<string>();
+  students.forEach(s => s.subjectNames.forEach(n => allSubjectNames.add(n)));
+  const orderedSubjects = Array.from(allSubjectNames).sort();
 
   const results: JuniorStudentResult[] = students.map((student, index) => {
     const grades: Record<string, string> = {};
     const gradePointsMap: Record<string, number> = {};
-    const optionalWithPoints: { subject: string; points: number }[] = [];
 
-    // Process mandatory subjects (English + Math)
-    const englishGrade = getGrade(student.english);
-    const mathGrade = getGrade(student.math);
-    const englishPoints = getGradePoints(student.english);
-    const mathPoints = getGradePoints(student.math);
-    
-    grades['english'] = englishGrade;
-    grades['math'] = mathGrade;
-    gradePointsMap['english'] = englishPoints;
-    gradePointsMap['math'] = mathPoints;
-    
-    const mandatoryPoints = englishPoints + mathPoints;
-    const compulsoryAverage = Math.round((student.english + student.math) / 2);
+    const allSubjects: { key: string; grade: number; score: number }[] = [];
 
-    // Process optional subjects
-    Object.entries(student.optionalSubjects).forEach(([key, score]) => {
+    orderedSubjects.forEach(name => {
+      const score = student.subjects[name] || 0;
       const grade = getGrade(score);
       const points = getGradePoints(score);
-      
-      grades[key.toLowerCase()] = grade;
-      gradePointsMap[key.toLowerCase()] = points;
-      optionalWithPoints.push({ subject: key.toLowerCase(), points });
+      grades[name] = grade;
+      gradePointsMap[name] = points;
+      allSubjects.push({ key: name, grade: points, score });
     });
 
-    // Sort by points ascending (lower is better) and take best 4
-    optionalWithPoints.sort((a, b) => a.points - b.points);
-    const bestFour = optionalWithPoints.slice(0, 4);
-    const bestFourOptionalPoints = bestFour.reduce((sum, p) => sum + p.points, 0);
-    const bestFourSubjects = bestFour.map(b => b.subject);
+    const mandatorySet = new Set(mandatorySubjects);
+    const bestSixSubjects: string[] = [];
+    let overallGradePoints: number;
 
-    // Total = mandatory (English + Math) + best 4 optional
-    const overallGradePoints = mandatoryPoints + bestFourOptionalPoints;
+    if (mandatorySet.size === 0) {
+      // Best 6 overall
+      const sorted = [...allSubjects].sort((a, b) => a.grade - b.grade);
+      const best6 = sorted.slice(0, 6);
+      overallGradePoints = best6.reduce((sum, s) => sum + s.grade, 0);
+      best6.forEach(s => bestSixSubjects.push(s.key));
+    } else {
+      const mandatory = allSubjects.filter(s => mandatorySet.has(s.key));
+      const optional = allSubjects.filter(s => !mandatorySet.has(s.key));
+      const mandatoryGradeSum = mandatory.reduce((sum, s) => sum + s.grade, 0);
+      mandatory.forEach(s => bestSixSubjects.push(s.key));
+      const remaining = 6 - mandatory.length;
+      const sortedOptional = [...optional].sort((a, b) => a.grade - b.grade);
+      const bestOptional = sortedOptional.slice(0, remaining);
+      const optionalGradeSum = bestOptional.reduce((sum, s) => sum + s.grade, 0);
+      bestOptional.forEach(s => bestSixSubjects.push(s.key));
+      overallGradePoints = mandatoryGradeSum + optionalGradeSum;
+    }
+
+    const best6Entries = allSubjects.filter(s => bestSixSubjects.includes(s.key));
+    const totalScore = best6Entries.reduce((sum, s) => sum + s.score, 0);
+    const compulsoryAverage = Math.round((totalScore / Math.max(best6Entries.length, 1)) * 10) / 10;
 
     return {
       id: `student-${index}`,
       name: student.name,
-      english: student.english,
-      math: student.math,
-      optionalSubjects: student.optionalSubjects,
-      optionalSubjectNames: orderedOptionalSubjects,
+      subjects: student.subjects,
+      subjectNames: orderedSubjects,
       grades,
       gradePoints: gradePointsMap,
-      mandatoryPoints,
-      bestFourOptionalPoints,
-      bestFourSubjects,
       overallGradePoints,
+      bestSixSubjects,
       compulsoryAverage,
-      rank: 0
+      rank: 0,
     };
   });
 
-  // Sort by overall grade points (ascending - lower is better)
-  results.sort((a, b) => {
-    if (a.overallGradePoints !== b.overallGradePoints) {
-      return a.overallGradePoints - b.overallGradePoints;
-    }
-    // Tiebreaker: lower mandatory points first
-    return a.mandatoryPoints - b.mandatoryPoints;
-  });
-
-  // Assign ranks
+  results.sort((a, b) => a.overallGradePoints - b.overallGradePoints);
   results.forEach((result, index) => {
     result.rank = index + 1;
   });
@@ -144,47 +122,46 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   const lines = text.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
 
-  // Detect separator
   const separator = lines[0].includes('|') ? '|' : '\t';
-  
-  // Parse header
-  const headerLine = lines[0].split(separator).map(h => h.trim().toLowerCase()).filter(h => h);
-  
-  // Find column indices
-  const nameIndex = headerLine.findIndex(h => h === 'name' || h === 'student');
-  
+  const headerLine = lines[0].split(separator).map(h => h.trim()).filter(h => h);
+
+  const nameIndex = headerLine.findIndex(h => {
+    const l = h.toLowerCase();
+    return l === 'name' || l === 'student';
+  });
+
   if (nameIndex === -1) return [];
 
+  const subjectHeaders: { index: number; name: string }[] = [];
+  headerLine.forEach((header, idx) => {
+    if (idx === nameIndex) return;
+    if (header.trim()) {
+      subjectHeaders.push({ index: idx, name: header.trim() });
+    }
+  });
+
+  const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
 
   for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.includes('---')) continue;
     const values = lines[i].split(separator).map(v => v.trim()).filter(v => v);
     if (values.length < 2) continue;
 
-    const student: JuniorStudentData = {
-      name: values[nameIndex] || '',
-      english: 0,
-      math: 0,
-      optionalSubjects: {}
-    };
-
-    headerLine.forEach((header, idx) => {
-      if (header === 'name' || header === 'student') return;
-      
-      const value = parseFloat(values[idx]) || 0;
-      
-      if (header === 'english' || header === 'eng') {
-        student.english = value;
-      } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
-        student.math = value;
-      } else {
-        student.optionalSubjects[header] = value;
-      }
+    const subjects: Record<string, number> = {};
+    subjectHeaders.forEach(({ index, name }) => {
+      const value = parseFloat(values[index]) || 0;
+      subjects[name] = value;
     });
 
-    if (student.name) {
-      students.push(student);
-    }
+    const student: JuniorStudentData = {
+      name: values[nameIndex] || '',
+      subjects,
+      subjectNames,
+    };
+
+    if (student.name) students.push(student);
   }
 
   return students;
@@ -194,41 +171,42 @@ export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
   const lines = text.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
 
-  const headerLine = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
-  const nameIndex = headerLine.findIndex(h => h === 'name' || h === 'student');
+  const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+  const nameIndex = rawHeaders.findIndex(h => {
+    const l = h.toLowerCase();
+    return l === 'name' || l === 'student';
+  });
 
   if (nameIndex === -1) return [];
 
+  const subjectHeaders: { index: number; name: string }[] = [];
+  rawHeaders.forEach((header, idx) => {
+    if (idx === nameIndex) return;
+    if (header.trim()) {
+      subjectHeaders.push({ index: idx, name: header.trim() });
+    }
+  });
+
+  const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
     if (values.length < 2) continue;
 
-    const student: JuniorStudentData = {
-      name: values[nameIndex] || '',
-      english: 0,
-      math: 0,
-      optionalSubjects: {}
-    };
-
-    headerLine.forEach((header, idx) => {
-      if (header === 'name' || header === 'student') return;
-      
-      const value = parseFloat(values[idx]) || 0;
-      
-      if (header === 'english' || header === 'eng') {
-        student.english = value;
-      } else if (header === 'math' || header === 'maths' || header === 'mathematics') {
-        student.math = value;
-      } else {
-        student.optionalSubjects[header] = value;
-      }
+    const subjects: Record<string, number> = {};
+    subjectHeaders.forEach(({ index, name }) => {
+      const value = parseFloat(values[index]) || 0;
+      subjects[name] = value;
     });
 
-    if (student.name) {
-      students.push(student);
-    }
+    const student: JuniorStudentData = {
+      name: values[nameIndex] || '',
+      subjects,
+      subjectNames,
+    };
+
+    if (student.name) students.push(student);
   }
 
   return students;

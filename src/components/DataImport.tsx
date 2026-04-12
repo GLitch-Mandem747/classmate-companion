@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, Copy, Table } from 'lucide-react';
+import { Upload, FileText, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StudentData, parseTableData, parseCSV, matchHeaderToSubject, SeniorSubjectKey } from '@/lib/grading';
+import { StudentData, parseTableData, parseCSV, matchHeaderToFixedSubject, FixedSubjectKey } from '@/lib/grading';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -13,73 +13,15 @@ interface DataImportProps {
   onImport: (students: StudentData[]) => void;
 }
 
-const SAMPLE_DATA = `| Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic |
-| John Smith | 78 | 82 | 85 | 76 | 80 | 72 | 68 | 75 | 70 |
-| Jane Doe | 92 | 88 | 95 | 90 | 87 | 85 | 90 | 88 | 92 |
-| Mike Johnson | 65 | 70 | 72 | 68 | 65 | 60 | 55 | 62 | 58 |
-| Sarah Williams | 88 | 75 | 80 | 78 | 82 | 70 | 85 | 80 | 75 |
-| David Brown | 45 | 50 | 55 | 48 | 52 | 40 | 45 | 42 | 48 |`;
-
-const SENIOR_HEADERS = ['Name', 'English', 'Biology', 'Math', 'Chemistry', 'Physics', 'D and T', 'History', 'R.E', 'Civic'];
-const SENIOR_PREVIEW_ROWS = [
-  ['John Smith', '78', '82', '85', '76', '80', '72', '68', '75', '70'],
-  ['Jane Doe', '92', '88', '95', '90', '87', '85', '90', '88', '92'],
-  ['Mike Johnson', '65', '70', '72', '68', '65', '60', '55', '62', '58'],
-];
-
-function SpreadsheetPreview({ headers, rows, accentClass }: { headers: string[]; rows: string[][]; accentClass: string }) {
-  return (
-    <div className="overflow-x-auto rounded-md border border-border">
-      <table className="text-xs w-full border-collapse">
-        <thead>
-          <tr>
-            {/* Row number gutter */}
-            <th className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-normal w-6"></th>
-            {headers.map((h, i) => (
-              <th
-                key={i}
-                className={`border border-border px-2 py-1 text-center font-semibold whitespace-nowrap ${i === 0 ? 'bg-muted text-muted-foreground' : `${accentClass} text-foreground`}`}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, ri) => (
-            <tr key={ri} className="odd:bg-background even:bg-muted/30">
-              <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{ri + 2}</td>
-              {row.map((cell, ci) => (
-                <td
-                  key={ci}
-                  className={`border border-border px-2 py-1 text-center font-mono whitespace-nowrap ${ci === 0 ? 'text-left font-medium' : ''}`}
-                >
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          ))}
-          <tr className="opacity-40">
-            <td className="bg-muted text-muted-foreground border border-border px-2 py-1 text-center font-mono">{rows.length + 2}</td>
-            {headers.map((_, i) => (
-              <td key={i} className="border border-border px-2 py-1 text-center text-muted-foreground">…</td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
   if (data.length < 2) return [];
 
-  // First row is headers - map by name
   const headers = data[0].map((h: any) => String(h || '').trim());
-  const columnMap: { index: number; key: SeniorSubjectKey }[] = [];
+  const fixedMap: { index: number; key: FixedSubjectKey }[] = [];
+  const additionalMap: { index: number; name: string }[] = [];
   let nameIndex = -1;
 
   headers.forEach((header: string, idx: number) => {
@@ -88,13 +30,16 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
       nameIndex = idx;
       return;
     }
-    const subjectKey = matchHeaderToSubject(header);
-    if (subjectKey) {
-      columnMap.push({ index: idx, key: subjectKey });
+    const fixedKey = matchHeaderToFixedSubject(header);
+    if (fixedKey) {
+      fixedMap.push({ index: idx, key: fixedKey });
+    } else if (header.trim()) {
+      additionalMap.push({ index: idx, name: header.trim() });
     }
   });
 
   if (nameIndex === -1) nameIndex = 0;
+  const additionalNames = additionalMap.map(a => a.name);
 
   const students: StudentData[] = [];
   for (let i = 1; i < data.length; i++) {
@@ -103,15 +48,19 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
 
     const student: StudentData = {
       name: row[nameIndex]?.toString() || 'Unknown',
-      english: 0, biology: 0, math: 0, chemistry: 0,
-      physics: 0, dAndT: 0, history: 0, re: 0, civic: 0,
+      english: 0, biology: 0, math: 0, chemistry: 0, physics: 0,
+      additionalSubjects: {},
+      additionalSubjectNames: additionalNames,
     };
 
-    columnMap.forEach(({ index, key }) => {
+    fixedMap.forEach(({ index, key }) => {
       const val = parseFloat(row[index]?.toString());
-      if (!isNaN(val)) {
-        (student as any)[key] = val;
-      }
+      if (!isNaN(val)) (student as any)[key] = val;
+    });
+
+    additionalMap.forEach(({ index, name }) => {
+      const val = parseFloat(row[index]?.toString());
+      if (!isNaN(val)) student.additionalSubjects[name] = val;
     });
 
     if (student.name) students.push(student);
@@ -127,7 +76,6 @@ export function DataImport({ onImport }: DataImportProps) {
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsLoading(true);
-    
     try {
       const fileName = file.name.toLowerCase();
       let students: StudentData[] = [];
@@ -150,23 +98,12 @@ export function DataImport({ onImport }: DataImportProps) {
       
       if (students.length > 0) {
         onImport(students);
-        toast({
-          title: 'Import Successful',
-          description: `Imported ${students.length} students from file.`,
-        });
+        toast({ title: 'Import Successful', description: `Imported ${students.length} students from file.` });
       } else {
-        toast({
-          title: 'Import Failed',
-          description: 'No valid student data found in file.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Import Failed', description: 'No valid student data found in file.', variant: 'destructive' });
       }
     } catch (error) {
-      toast({
-        title: 'Import Error',
-        description: 'Failed to read the file. Please check the format.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Import Error', description: 'Failed to read the file. Please check the format.', variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
@@ -181,39 +118,29 @@ export function DataImport({ onImport }: DataImportProps) {
 
   const handlePasteImport = () => {
     if (!pasteData.trim()) {
-      toast({
-        title: 'No Data',
-        description: 'Please paste some data first.',
-        variant: 'destructive',
-      });
+      toast({ title: 'No Data', description: 'Please paste some data first.', variant: 'destructive' });
       return;
     }
-    
     const students = parseTableData(pasteData);
-    
     if (students.length > 0) {
       onImport(students);
-      toast({
-        title: 'Import Successful',
-        description: `Imported ${students.length} students.`,
-      });
+      toast({ title: 'Import Successful', description: `Imported ${students.length} students.` });
       setPasteData('');
     } else {
-      toast({
-        title: 'Import Failed',
-        description: 'Could not parse the data. Check the format.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Import Failed', description: 'Could not parse the data. Check the format.', variant: 'destructive' });
     }
   };
 
   const handleLoadSample = () => {
-    const students = parseTableData(SAMPLE_DATA);
+    const sampleData = `| Name | English | Biology | Math | Chemistry | Physics | D and T | History | R.E | Civic |
+| John Smith | 78 | 82 | 85 | 76 | 80 | 72 | 68 | 75 | 70 |
+| Jane Doe | 92 | 88 | 95 | 90 | 87 | 85 | 90 | 88 | 92 |
+| Mike Johnson | 65 | 70 | 72 | 68 | 65 | 60 | 55 | 62 | 58 |
+| Sarah Williams | 88 | 75 | 80 | 78 | 82 | 70 | 85 | 80 | 75 |
+| David Brown | 45 | 50 | 55 | 48 | 52 | 40 | 45 | 42 | 48 |`;
+    const students = parseTableData(sampleData);
     onImport(students);
-    toast({
-      title: 'Sample Loaded',
-      description: `Loaded ${students.length} sample students.`,
-    });
+    toast({ title: 'Sample Loaded', description: `Loaded ${students.length} sample students.` });
   };
 
   return (
@@ -221,15 +148,13 @@ export function DataImport({ onImport }: DataImportProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-primary" />
-          Import Senior Student Data
+          Import Student Data
         </CardTitle>
         <CardDescription>
-          Import student scores from a file or paste data directly using the Senior Grading System format
+          Import student scores from a file or paste data directly. Column headers determine subjects — use any names you want.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-
-
         <Tabs defaultValue="file" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="file">Upload File</TabsTrigger>
@@ -239,9 +164,7 @@ export function DataImport({ onImport }: DataImportProps) {
           <TabsContent value="file" className="space-y-4">
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging 
-                  ? 'border-primary bg-primary/10' 
-                  : 'border-border hover:border-primary/50'
+                isDragging ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
               }`}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
