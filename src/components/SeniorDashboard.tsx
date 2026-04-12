@@ -5,7 +5,7 @@ import { GradingScale } from '@/components/GradingScale';
 import { ExportPanel } from '@/components/ExportPanel';
 import { RemarksPanel, RemarkStudent } from '@/components/RemarksPanel';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
-import { StudentData, StudentResult, calculateStudentResults, SUBJECT_LABELS } from '@/lib/grading';
+import { StudentData, StudentResult, calculateStudentResults, SUBJECT_LABELS, getAllSubjectEntries } from '@/lib/grading';
 import { TestData, exportReportCards, previewSeniorReportCard } from '@/lib/export';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,6 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
   const [term, setTerm] = useState('');
   const [mandatorySubjects, setMandatorySubjects] = useState<string[]>([]);
 
-  // Recalculate all tests when mandatory subjects change
   const recalculate = useCallback((raw: [StudentData[] | null, StudentData[] | null, StudentData[] | null], mandatory: string[], currentTests: [TestData | null, TestData | null, TestData | null]) => {
     const newTests = [...currentTests] as [TestData | null, TestData | null, TestData | null];
     raw.forEach((students, idx) => {
@@ -67,7 +66,6 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       newMandatory = [...mandatorySubjects, subjectKey];
     }
     setMandatorySubjects(newMandatory);
-    // Recalculate all loaded tests
     const newTests = recalculate(rawStudents, newMandatory, tests);
     setTests(newTests);
   };
@@ -91,11 +89,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
 
   const handleExportReportCards = async () => {
     if (!className.trim() || !teacherName.trim() || !term.trim()) {
-      toast({
-        title: 'Missing Info',
-        description: 'Please enter the class name, teacher name, and term before generating report cards.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Missing Info', description: 'Please enter the class name, teacher name, and term before generating report cards.', variant: 'destructive' });
       return;
     }
     await exportReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks, mandatorySubjects);
@@ -106,6 +100,22 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
   const hasAnyData = tests.some(t => t !== null);
   const allTestsLoaded = tests.every(t => t !== null);
   const latestResults = tests[2]?.results || tests[1]?.results || tests[0]?.results || [];
+
+  // Build remark students from results using dynamic subjects
+  const remarkStudents: RemarkStudent[] = latestResults.map(r => {
+    const entries = getAllSubjectEntries(r);
+    return {
+      id: r.id,
+      name: r.name,
+      overallGradePoints: r.overallGradePoints,
+      rank: r.rank,
+      subjects: entries.map(e => ({
+        subject: SUBJECT_LABELS[e.key] || e.key,
+        score: e.score,
+        grade: r.grades[e.key] || '9',
+      })),
+    };
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -208,22 +218,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
 
             {allTestsLoaded && latestResults.length > 0 && (
               <RemarksPanel
-                students={latestResults.map(r => ({
-                  id: r.id,
-                  name: r.name,
-                  overallGradePoints: r.overallGradePoints,
-                  rank: r.rank,
-                  subjects: [
-                    { subject: 'English', score: r.english, grade: r.grades.english },
-                    { subject: 'Mathematics', score: r.math, grade: r.grades.math },
-                    { subject: 'Biology', score: r.biology, grade: r.grades.biology },
-                    { subject: 'Science', score: r.science, grade: r.grades.science },
-                    { subject: 'Civic Education', score: r.civic, grade: r.grades.civic },
-                    { subject: 'Religious Education', score: r.re, grade: r.grades.re },
-                    { subject: 'History', score: r.history, grade: r.grades.history },
-                    { subject: 'Design & Technology', score: r.dAndT, grade: r.grades.dAndT },
-                  ],
-                } as RemarkStudent))}
+                students={remarkStudents}
                 totalStudents={latestResults.length}
                 onRemarksChange={setApprovedRemarks}
               />
