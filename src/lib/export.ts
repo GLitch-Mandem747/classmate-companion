@@ -15,75 +15,37 @@ async function getLogoDataUri(): Promise<string> {
   } catch { return ''; }
 }
 
-let cachedSignatureDataUri: string | null = null;
-async function getSignatureDataUri(): Promise<string> {
-  if (cachedSignatureDataUri) return cachedSignatureDataUri;
-  try {
-    const response = await fetch('/images/principal-signature.jpg');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => { cachedSignatureDataUri = reader.result as string; resolve(cachedSignatureDataUri); };
-      reader.readAsDataURL(blob);
-    });
-  } catch { return ''; }
-}
-
-let cachedStampDataUri: string | null = null;
-async function getStampDataUri(): Promise<string> {
-  if (cachedStampDataUri) return cachedStampDataUri;
-  try {
-    const response = await fetch('/images/school-stamp.jpg');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => { cachedStampDataUri = reader.result as string; resolve(cachedStampDataUri); };
-      reader.readAsDataURL(blob);
-    });
-  } catch { return ''; }
-}
-
 function getLogoUrl(): string { return '/images/school-logo.png'; }
-function getSignatureUrl(): string { return '/images/principal-signature.jpg'; }
-function getStampUrl(): string { return '/images/school-stamp.jpg'; }
 
 export interface TestData {
   name: string;
   results: StudentResult[];
 }
 
-// Helper to get score for a subject key from a StudentResult
 function getSeniorScore(result: StudentResult | null, key: string): string {
   if (!result) return '';
   if (key === 'science') return String(result.science);
-  if (key in result) return String((result as any)[key]);
-  const val = result.additionalSubjects?.[key];
+  const val = result.subjects[key];
   return val !== undefined ? String(val) : '';
 }
 
-// Get all subject keys for display in report card (fixed + science + additional)
 function getSeniorSubjectList(result: StudentResult): { key: string; label: string }[] {
-  const subjects: { key: string; label: string }[] = [
-    { key: 'english', label: 'ENGLISH' },
-    { key: 'biology', label: 'BIOLOGY' },
-    { key: 'math', label: 'MATHEMATICS' },
-    { key: 'chemistry', label: 'CHEMISTRY' },
-    { key: 'physics', label: 'PHYSICS' },
-    { key: 'science', label: 'SCIENCE' },
-  ];
-  for (const name of (result.additionalSubjectNames || [])) {
-    subjects.push({ key: name, label: name.toUpperCase() });
+  const subjects: { key: string; label: string }[] = result.subjectNames.map(name => ({
+    key: name,
+    label: name.toUpperCase(),
+  }));
+  if (result.hasScience) {
+    subjects.push({ key: 'science', label: 'SCIENCE' });
   }
   return subjects;
 }
 
 export function exportToExcel(students: StudentResult[], filename: string = 'student_results'): void {
-  const additionalNames = students[0]?.additionalSubjectNames || [];
-  const headers = ['Rank', 'Name', 'English', 'Biology', 'Math', 'Chemistry', 'Physics', 'Science (Avg)', ...additionalNames.map(n => n), 'Grade Points'];
+  const subjectNames = students[0]?.subjectNames || [];
+  const hasScience = students[0]?.hasScience || false;
+  const headers = ['Rank', 'Name', ...subjectNames, ...(hasScience ? ['Science (Avg)'] : []), 'Grade Points'];
   const rows = students.map((s) => [
-    s.rank, s.name, s.english, s.biology, s.math, s.chemistry, s.physics, s.science,
-    ...additionalNames.map(n => s.additionalSubjects[n] || 0),
-    s.overallGradePoints,
+    s.rank, s.name, ...subjectNames.map(n => s.subjects[n] || 0), ...(hasScience ? [s.science] : []), s.overallGradePoints,
   ]);
   const csvContent = [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join('\n');
   const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -95,11 +57,12 @@ export function exportToExcel(students: StudentResult[], filename: string = 'stu
 }
 
 export function exportToWord(students: StudentResult[], schoolName: string = 'School Name'): void {
-  const additionalNames = students[0]?.additionalSubjectNames || [];
+  const subjectNames = students[0]?.subjectNames || [];
+  const hasScience = students[0]?.hasScience || false;
   const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif}table{border-collapse:collapse;width:100%;margin-bottom:20px}th,td{border:1px solid #333;padding:8px;text-align:center}th{background-color:#1e40af;color:white}.header{text-align:center;margin-bottom:30px}.rank{font-weight:bold}</style></head><body>
   <div class="header"><h1>${schoolName}</h1><h2>Student Results Report</h2><p>Generated on: ${new Date().toLocaleDateString()}</p></div>
-  <table><thead><tr><th>Rank</th><th>Name</th><th>Eng</th><th>Bio</th><th>Math</th><th>Chem</th><th>Phys</th><th>Sci</th>${additionalNames.map(n => `<th>${n}</th>`).join('')}<th>Grade Pts</th></tr></thead>
-  <tbody>${students.map(s => `<tr><td class="rank">${s.rank}</td><td>${s.name}</td><td>${s.english}</td><td>${s.biology}</td><td>${s.math}</td><td>${s.chemistry}</td><td>${s.physics}</td><td>${s.science}</td>${additionalNames.map(n => `<td>${s.additionalSubjects[n] || 0}</td>`).join('')}<td>${s.overallGradePoints}</td></tr>`).join('')}</tbody></table>
+  <table><thead><tr><th>Rank</th><th>Name</th>${subjectNames.map(n => `<th>${n}</th>`).join('')}${hasScience ? '<th>Sci</th>' : ''}<th>Grade Pts</th></tr></thead>
+  <tbody>${students.map(s => `<tr><td class="rank">${s.rank}</td><td>${s.name}</td>${subjectNames.map(n => `<td>${s.subjects[n] || 0}</td>`).join('')}${hasScience ? `<td>${s.science}</td>` : ''}<td>${s.overallGradePoints}</td></tr>`).join('')}</tbody></table>
   </body></html>`;
   const blob = new Blob([htmlContent], { type: 'application/msword' });
   const link = document.createElement('a');
@@ -130,7 +93,7 @@ function calculateFinalRank(students: StudentTestScores[]): Map<string, number> 
 function generateReportCardHTML(
   student: StudentTestScores, schoolName: string, term: string, className: string,
   teacherName: string, rank: number, totalStudents: number, remark?: string,
-  logoUri?: string, mandatorySubjects: string[] = [], signatureUri?: string, stampUri?: string
+  logoUri?: string, mandatorySubjects: string[] = []
 ): string {
   const finalTest = student.test3 || student.test2 || student.test1;
   const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
@@ -210,8 +173,14 @@ function generateReportCardHTML(
         </table>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
-        <div><p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p><img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" /><div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div></div>
-        <div style="text-align: right;"><p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p><img src="${stampUri}" style="width: 140px; height: auto;" /></div>
+        <div>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
+        </div>
+        <div style="text-align: right;">
+          <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
+          <img src="${logoUri}" style="width: 100px; height: 100px; object-fit: contain;" />
+        </div>
       </div>
     </div>`;
 }
@@ -222,8 +191,6 @@ export async function exportReportCards(
   remarksMap?: Map<string, string>, mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
-  const signatureUri = await getSignatureDataUri();
-  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, StudentTestScores>();
   tests.forEach((test, testIndex) => {
     if (!test) return;
@@ -240,7 +207,7 @@ export async function exportReportCards(
   const rankMap = calculateFinalRank(students);
   const content = students.map((s) => {
     const remark = remarksMap?.get(s.name);
-    return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects, signatureUri, stampUri);
+    return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
   }).join('');
   const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
   const blob = new Blob([fullHTML], { type: 'application/msword' });
@@ -272,7 +239,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), mandatorySubjects, getSignatureUrl(), getStampUrl());
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), mandatorySubjects);
 }
 
 // ---- Junior exports ----
@@ -334,7 +301,7 @@ export function exportJuniorToWord(students: JuniorStudentResult[], schoolName: 
 function generateJuniorReportCardHTML(
   student: JuniorStudentTestScores, schoolName: string, term: string, className: string,
   teacherName: string, rank: number, totalStudents: number, remark?: string,
-  logoUri?: string, signatureUri?: string, stampUri?: string, mandatorySubjects: string[] = []
+  logoUri?: string, mandatorySubjects: string[] = []
 ): string {
   const finalTest = student.test3 || student.test2 || student.test1;
   const gradePoints = finalTest ? finalTest.overallGradePoints : 0;
@@ -409,8 +376,14 @@ function generateJuniorReportCardHTML(
         </table>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
-        <div><p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p><img src="${signatureUri}" style="width: 150px; height: auto; margin-bottom: 4px;" /><div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div></div>
-        <div style="text-align: right;"><p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p><img src="${stampUri}" style="width: 140px; height: auto;" /></div>
+        <div>
+          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+          <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
+        </div>
+        <div style="text-align: right;">
+          <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
+          <img src="${logoUri}" style="width: 100px; height: 100px; object-fit: contain;" />
+        </div>
       </div>
     </div>`;
 }
@@ -436,7 +409,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), getSignatureUrl(), getStampUrl(), mandatorySubjects);
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), mandatorySubjects);
 }
 
 export async function exportJuniorReportCards(
@@ -445,8 +418,6 @@ export async function exportJuniorReportCards(
   remarksMap?: Map<string, string>, mandatorySubjects: string[] = []
 ): Promise<void> {
   const logoUri = await getLogoDataUri();
-  const signatureUri = await getSignatureDataUri();
-  const stampUri = await getStampDataUri();
   const studentMap = new Map<string, JuniorStudentTestScores>();
   tests.forEach((test, testIndex) => {
     if (!test) return;
@@ -462,7 +433,7 @@ export async function exportJuniorReportCards(
   const rankMap = calculateJuniorFinalRank(students);
   const content = students.map((s) => {
     const remark = remarksMap?.get(s.name);
-    return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, students.length, remark, logoUri, signatureUri, stampUri, mandatorySubjects);
+    return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, students.length, remark, logoUri, mandatorySubjects);
   }).join('');
   const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
   const blob = new Blob([fullHTML], { type: 'application/msword' });
