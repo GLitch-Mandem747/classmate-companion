@@ -143,19 +143,12 @@ const ClassView = () => {
       let rank = student.rank;
       let totalStudents = 0;
 
-      if ('additionalSubjects' in student) {
+      if ('hasScience' in student) {
         // Senior student
         const sr = student as StudentResult;
-        subjects = [
-          { subject: 'English', score: sr.english, grade: sr.grades['english'] || '9' },
-          { subject: 'Biology', score: sr.biology, grade: sr.grades['biology'] || '9' },
-          { subject: 'Math', score: sr.math, grade: sr.grades['math'] || '9' },
-          { subject: 'Chemistry', score: sr.chemistry, grade: sr.grades['chemistry'] || '9' },
-          { subject: 'Physics', score: sr.physics, grade: sr.grades['physics'] || '9' },
-          ...Object.entries(sr.additionalSubjects).map(([subj, score]) => ({
-            subject: subj, score: score as number, grade: sr.grades[subj] || '9'
-          }))
-        ];
+        subjects = sr.subjectNames.map(name => ({
+          subject: name, score: sr.subjects[name] || 0, grade: sr.grades[name] || '9'
+        }));
         gradePoints = sr.overallGradePoints;
         totalStudents = tests[activeTest]?.results.length || 0;
       } else {
