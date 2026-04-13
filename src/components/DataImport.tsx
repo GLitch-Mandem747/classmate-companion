@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StudentData, parseTableData, parseCSV, matchHeaderToFixedSubject, FixedSubjectKey } from '@/lib/grading';
+import { StudentData, parseTableData, parseCSV } from '@/lib/grading';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -20,9 +20,8 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
   if (data.length < 2) return [];
 
   const headers = data[0].map((h: any) => String(h || '').trim());
-  const fixedMap: { index: number; key: FixedSubjectKey }[] = [];
-  const additionalMap: { index: number; name: string }[] = [];
   let nameIndex = -1;
+  const subjectHeaders: { index: number; name: string }[] = [];
 
   headers.forEach((header: string, idx: number) => {
     const lower = header.toLowerCase();
@@ -30,38 +29,31 @@ function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
       nameIndex = idx;
       return;
     }
-    const fixedKey = matchHeaderToFixedSubject(header);
-    if (fixedKey) {
-      fixedMap.push({ index: idx, key: fixedKey });
-    } else if (header.trim()) {
-      additionalMap.push({ index: idx, name: header.trim() });
+    if (header.trim()) {
+      subjectHeaders.push({ index: idx, name: header.trim() });
     }
   });
 
   if (nameIndex === -1) nameIndex = 0;
-  const additionalNames = additionalMap.map(a => a.name);
+  const subjectNames = subjectHeaders.map(s => s.name);
 
   const students: StudentData[] = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     if (!row || row.length < 2) continue;
 
+    const subjects: Record<string, number> = {};
+    subjectHeaders.forEach(({ index, name }) => {
+      const val = parseFloat(row[index]?.toString());
+      if (!isNaN(val)) subjects[name] = val;
+      else subjects[name] = 0;
+    });
+
     const student: StudentData = {
-      name: row[nameIndex]?.toString() || 'Unknown',
-      english: 0, biology: 0, math: 0, chemistry: 0, physics: 0,
-      additionalSubjects: {},
-      additionalSubjectNames: additionalNames,
+      name: row[nameIndex]?.toString()?.trim() || '',
+      subjects,
+      subjectNames,
     };
-
-    fixedMap.forEach(({ index, key }) => {
-      const val = parseFloat(row[index]?.toString());
-      if (!isNaN(val)) (student as any)[key] = val;
-    });
-
-    additionalMap.forEach(({ index, name }) => {
-      const val = parseFloat(row[index]?.toString());
-      if (!isNaN(val)) student.additionalSubjects[name] = val;
-    });
 
     if (student.name) students.push(student);
   }
@@ -121,7 +113,12 @@ export function DataImport({ onImport }: DataImportProps) {
       toast({ title: 'No Data', description: 'Please paste some data first.', variant: 'destructive' });
       return;
     }
-    const students = parseTableData(pasteData);
+    let students: StudentData[];
+    if (pasteData.includes(',') && !pasteData.includes('|')) {
+      students = parseCSV(pasteData);
+    } else {
+      students = parseTableData(pasteData);
+    }
     if (students.length > 0) {
       onImport(students);
       toast({ title: 'Import Successful', description: `Imported ${students.length} students.` });
