@@ -1,4 +1,5 @@
-// 9-point grading scale (1 to 9)
+// Senior grading system - flexible subjects with auto-detected Science (Chemistry+Physics avg)
+
 export interface GradeScale {
   grade: string;
   minScore: number;
@@ -18,14 +19,8 @@ export const GRADE_SCALE: GradeScale[] = [
 
 export interface StudentData {
   name: string;
-  english: number;
-  biology: number;
-  math: number;
-  chemistry: number;
-  physics: number;
-  // Fixed 5 subjects above; additional subjects below (flexible names)
-  additionalSubjects: Record<string, number>;
-  additionalSubjectNames: string[]; // Ordered list
+  subjects: Record<string, number>;
+  subjectNames: string[]; // Ordered list of all subject names
 }
 
 export interface SubjectScore {
@@ -34,47 +29,33 @@ export interface SubjectScore {
   grade: string;
 }
 
-// Fixed subject keys
-export const FIXED_SUBJECT_KEYS = ['english', 'biology', 'math', 'chemistry', 'physics'] as const;
-export type FixedSubjectKey = typeof FIXED_SUBJECT_KEYS[number];
-
 export const SUBJECT_LABELS: Record<string, string> = {
-  english: 'English',
-  biology: 'Biology',
-  math: 'Math',
-  chemistry: 'Chemistry',
-  physics: 'Physics',
   science: 'Science',
 };
 
-// Map header text variations to fixed subject keys
-const HEADER_MAP: Record<string, FixedSubjectKey> = {
-  'english': 'english',
-  'eng': 'english',
-  'biology': 'biology',
-  'bio': 'biology',
-  'math': 'math',
-  'maths': 'math',
-  'mathematics': 'math',
-  'chemistry': 'chemistry',
-  'chem': 'chemistry',
-  'physics': 'physics',
-  'phys': 'physics',
-};
+// Detect if a header maps to chemistry or physics (for science calculation)
+const CHEMISTRY_ALIASES = ['chemistry', 'chem'];
+const PHYSICS_ALIASES = ['physics', 'phys'];
 
-export function matchHeaderToFixedSubject(header: string): FixedSubjectKey | null {
-  const normalized = header.trim().toLowerCase();
-  return HEADER_MAP[normalized] || null;
+export function findChemistryKey(subjectNames: string[]): string | null {
+  return subjectNames.find(n => CHEMISTRY_ALIASES.includes(n.toLowerCase().trim())) || null;
+}
+
+export function findPhysicsKey(subjectNames: string[]): string | null {
+  return subjectNames.find(n => PHYSICS_ALIASES.includes(n.toLowerCase().trim())) || null;
 }
 
 export interface StudentResult extends StudentData {
   id: string;
-  science: number;
+  science: number; // Average of chemistry + physics if both exist, else 0
+  hasScience: boolean;
+  chemistryKey: string | null;
+  physicsKey: string | null;
   compulsoryAverage: number;
   overallGradePoints: number;
-  bestSixSubjects: string[]; // Keys of subjects included in the best 6
+  bestSixSubjects: string[];
   rank: number;
-  grades: Record<string, string>; // key -> grade for all subjects
+  grades: Record<string, string>;
 }
 
 export function getGrade(score: number): string {
@@ -102,20 +83,13 @@ export function getGradeClass(grade: string): string {
   }
 }
 
-export function getAllSubjectEntries(student: StudentData): { key: string; score: number }[] {
-  const entries: { key: string; score: number }[] = [
-    { key: 'english', score: student.english },
-    { key: 'biology', score: student.biology },
-    { key: 'math', score: student.math },
-    { key: 'chemistry', score: student.chemistry },
-    { key: 'physics', score: student.physics },
-  ];
-  // Science is computed
-  const science = (student.physics + student.chemistry) / 2;
-  entries.push({ key: 'science', score: science });
-  // Additional subjects
-  for (const name of student.additionalSubjectNames) {
-    entries.push({ key: name, score: student.additionalSubjects[name] || 0 });
+export function getAllSubjectEntries(student: StudentResult): { key: string; score: number }[] {
+  const entries: { key: string; score: number }[] = [];
+  for (const name of student.subjectNames) {
+    entries.push({ key: name, score: student.subjects[name] || 0 });
+  }
+  if (student.hasScience) {
+    entries.push({ key: 'science', score: student.science });
   }
   return entries;
 }
@@ -124,37 +98,47 @@ export function calculateStudentResults(
   students: StudentData[],
   mandatorySubjects: string[] = []
 ): StudentResult[] {
-  // Collect all additional subject names across students
-  const allAdditionalNames = new Set<string>();
-  students.forEach(s => s.additionalSubjectNames.forEach(n => allAdditionalNames.add(n)));
-  const orderedAdditional = Array.from(allAdditionalNames).sort();
+  const allSubjectNames = new Set<string>();
+  students.forEach(s => s.subjectNames.forEach(n => allSubjectNames.add(n)));
+  const orderedSubjects = Array.from(allSubjectNames);
+
+  // Detect chemistry and physics keys
+  const chemKey = findChemistryKey(orderedSubjects);
+  const physKey = findPhysicsKey(orderedSubjects);
+  const hasScience = !!(chemKey && physKey);
 
   const results: StudentResult[] = students.map((student, index) => {
-    const science = (student.physics + student.chemistry) / 2;
+    const science = hasScience
+      ? Math.round(((student.subjects[chemKey!] || 0) + (student.subjects[physKey!] || 0)) / 2 * 10) / 10
+      : 0;
 
-    // Build all subjects list
-    const allSubjects = getAllSubjectEntries(student).map(e => ({
-      ...e,
-      grade: parseInt(getGrade(e.score)) || 9,
-    }));
-
+    // Build all subjects for grading
+    const allSubjects: { key: string; grade: number; score: number }[] = [];
     const grades: Record<string, string> = {};
-    allSubjects.forEach(s => {
-      grades[s.key] = getGrade(s.score);
+
+    orderedSubjects.forEach(name => {
+      const score = student.subjects[name] || 0;
+      const grade = getGrade(score);
+      grades[name] = grade;
+      allSubjects.push({ key: name, grade: parseInt(grade) || 9, score });
     });
+
+    if (hasScience) {
+      const sciGrade = getGrade(science);
+      grades['science'] = sciGrade;
+      allSubjects.push({ key: 'science', grade: parseInt(sciGrade) || 9, score: science });
+    }
 
     const mandatorySet = new Set(mandatorySubjects);
     const bestSixSubjects: string[] = [];
     let overallGradePoints: number;
 
     if (mandatorySet.size === 0) {
-      // No mandatory → best 6 overall
       const sorted = [...allSubjects].sort((a, b) => a.grade - b.grade);
       const best6 = sorted.slice(0, 6);
       overallGradePoints = best6.reduce((sum, s) => sum + s.grade, 0);
       best6.forEach(s => bestSixSubjects.push(s.key));
     } else {
-      // Mandatory + best (6 - N) from remaining
       const mandatory = allSubjects.filter(s => mandatorySet.has(s.key));
       const optional = allSubjects.filter(s => !mandatorySet.has(s.key));
       const mandatoryGradeSum = mandatory.reduce((sum, s) => sum + s.grade, 0);
@@ -167,16 +151,18 @@ export function calculateStudentResults(
       overallGradePoints = mandatoryGradeSum + optionalGradeSum;
     }
 
-    // Average of best 6 scores
     const best6Entries = allSubjects.filter(s => bestSixSubjects.includes(s.key));
     const totalScore = best6Entries.reduce((sum, s) => sum + s.score, 0);
-    const compulsoryAverage = Math.round((totalScore / 6) * 10) / 10;
+    const compulsoryAverage = Math.round((totalScore / Math.max(best6Entries.length, 1)) * 10) / 10;
 
     return {
       ...student,
-      additionalSubjectNames: orderedAdditional,
+      subjectNames: orderedSubjects,
       id: `student-${index}-${Date.now()}`,
-      science: Math.round(science * 10) / 10,
+      science,
+      hasScience,
+      chemistryKey: chemKey,
+      physicsKey: physKey,
       compulsoryAverage,
       overallGradePoints,
       bestSixSubjects,
@@ -198,57 +184,48 @@ export function parseTableData(text: string): StudentData[] {
   if (lines.length < 2) return [];
 
   const separator = lines[0].includes('|') ? '|' : '\t';
-  const headerParts = lines[0].split(separator).map(h => h.trim()).filter(h => h);
+
+  // Don't filter empty strings - use raw split to preserve indices
+  const rawHeaderParts = lines[0].split(separator).map(h => h.trim());
 
   let nameIndex = -1;
-  const fixedMap: { index: number; key: FixedSubjectKey }[] = [];
-  const additionalMap: { index: number; name: string }[] = [];
+  const subjectHeaders: { index: number; name: string }[] = [];
 
-  headerParts.forEach((header, idx) => {
+  rawHeaderParts.forEach((header, idx) => {
+    if (!header) return;
     const lower = header.toLowerCase();
     if (lower === 'name' || lower === 'student') {
       nameIndex = idx;
       return;
     }
-    const fixedKey = matchHeaderToFixedSubject(header);
-    if (fixedKey) {
-      fixedMap.push({ index: idx, key: fixedKey });
-    } else {
-      // It's an additional/flexible subject
-      additionalMap.push({ index: idx, name: header.trim() });
-    }
+    subjectHeaders.push({ index: idx, name: header.trim() });
   });
 
   if (nameIndex === -1) nameIndex = 0;
-
-  const additionalNames = additionalMap.map(a => a.name);
+  const subjectNames = subjectHeaders.map(s => s.name);
 
   const students: StudentData[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes('---')) continue;
-    const parts = line.split(separator).map(p => p.trim()).filter(p => p);
-    if (parts.length < 2) continue;
+    const rawParts = line.split(separator).map(p => p.trim());
+    if (rawParts.filter(p => p).length < 2) continue;
+
+    const subjects: Record<string, number> = {};
+    subjectHeaders.forEach(({ index, name }) => {
+      const val = parseFloat(rawParts[index]);
+      if (!isNaN(val)) subjects[name] = val;
+      else subjects[name] = 0;
+    });
 
     const student: StudentData = {
-      name: parts[nameIndex] || 'Unknown',
-      english: 0, biology: 0, math: 0, chemistry: 0, physics: 0,
-      additionalSubjects: {},
-      additionalSubjectNames: additionalNames,
+      name: rawParts[nameIndex] || 'Unknown',
+      subjects,
+      subjectNames,
     };
 
-    fixedMap.forEach(({ index, key }) => {
-      const val = parseFloat(parts[index]);
-      if (!isNaN(val)) (student as any)[key] = val;
-    });
-
-    additionalMap.forEach(({ index, name }) => {
-      const val = parseFloat(parts[index]);
-      if (!isNaN(val)) student.additionalSubjects[name] = val;
-    });
-
-    if (student.name) students.push(student);
+    if (student.name && student.name !== 'Unknown') students.push(student);
   }
 
   return students;
@@ -261,8 +238,7 @@ export function parseCSV(text: string): StudentData[] {
   const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
 
   let nameIndex = -1;
-  const fixedMap: { index: number; key: FixedSubjectKey }[] = [];
-  const additionalMap: { index: number; name: string }[] = [];
+  const subjectHeaders: { index: number; name: string }[] = [];
 
   rawHeaders.forEach((header, idx) => {
     const lower = header.toLowerCase();
@@ -270,16 +246,13 @@ export function parseCSV(text: string): StudentData[] {
       nameIndex = idx;
       return;
     }
-    const fixedKey = matchHeaderToFixedSubject(header);
-    if (fixedKey) {
-      fixedMap.push({ index: idx, key: fixedKey });
-    } else if (header.trim()) {
-      additionalMap.push({ index: idx, name: header.trim() });
+    if (header.trim()) {
+      subjectHeaders.push({ index: idx, name: header.trim() });
     }
   });
 
   if (nameIndex === -1) nameIndex = 0;
-  const additionalNames = additionalMap.map(a => a.name);
+  const subjectNames = subjectHeaders.map(s => s.name);
 
   const students: StudentData[] = [];
 
@@ -287,24 +260,20 @@ export function parseCSV(text: string): StudentData[] {
     const parts = lines[i].split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
     if (parts.length < 2) continue;
 
+    const subjects: Record<string, number> = {};
+    subjectHeaders.forEach(({ index, name }) => {
+      const val = parseFloat(parts[index]);
+      if (!isNaN(val)) subjects[name] = val;
+      else subjects[name] = 0;
+    });
+
     const student: StudentData = {
       name: parts[nameIndex] || 'Unknown',
-      english: 0, biology: 0, math: 0, chemistry: 0, physics: 0,
-      additionalSubjects: {},
-      additionalSubjectNames: additionalNames,
+      subjects,
+      subjectNames,
     };
 
-    fixedMap.forEach(({ index, key }) => {
-      const val = parseFloat(parts[index]);
-      if (!isNaN(val)) (student as any)[key] = val;
-    });
-
-    additionalMap.forEach(({ index, name }) => {
-      const val = parseFloat(parts[index]);
-      if (!isNaN(val)) student.additionalSubjects[name] = val;
-    });
-
-    if (student.name) students.push(student);
+    if (student.name && student.name !== 'Unknown') students.push(student);
   }
 
   return students;

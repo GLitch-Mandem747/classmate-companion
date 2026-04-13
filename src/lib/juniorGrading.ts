@@ -14,8 +14,8 @@ export interface JuniorStudentResult {
   subjectNames: string[];
   grades: Record<string, string>;
   gradePoints: Record<string, number>;
-  overallGradePoints: number; // Sum of best 6 (or mandatory + best remaining)
-  bestSixSubjects: string[]; // Keys of subjects in the best 6
+  overallGradePoints: number;
+  bestSixSubjects: string[];
   compulsoryAverage: number;
   rank: number;
 }
@@ -49,10 +49,9 @@ export const calculateJuniorStudentResults = (
   students: JuniorStudentData[],
   mandatorySubjects: string[] = []
 ): JuniorStudentResult[] => {
-  // Collect all subject names
   const allSubjectNames = new Set<string>();
   students.forEach(s => s.subjectNames.forEach(n => allSubjectNames.add(n)));
-  const orderedSubjects = Array.from(allSubjectNames).sort();
+  const orderedSubjects = Array.from(allSubjectNames);
 
   const results: JuniorStudentResult[] = students.map((student, index) => {
     const grades: Record<string, string> = {};
@@ -74,7 +73,6 @@ export const calculateJuniorStudentResults = (
     let overallGradePoints: number;
 
     if (mandatorySet.size === 0) {
-      // Best 6 overall
       const sorted = [...allSubjects].sort((a, b) => a.grade - b.grade);
       const best6 = sorted.slice(0, 6);
       overallGradePoints = best6.reduce((sum, s) => sum + s.grade, 0);
@@ -123,22 +121,23 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   if (lines.length < 2) return [];
 
   const separator = lines[0].includes('|') ? '|' : '\t';
-  const headerLine = lines[0].split(separator).map(h => h.trim()).filter(h => h);
+  // Keep raw parts with indices intact (don't filter empty strings)
+  const rawHeaderParts = lines[0].split(separator).map(h => h.trim());
 
-  const nameIndex = headerLine.findIndex(h => {
-    const l = h.toLowerCase();
-    return l === 'name' || l === 'student';
+  let nameIndex = -1;
+  const subjectHeaders: { index: number; name: string }[] = [];
+
+  rawHeaderParts.forEach((header, idx) => {
+    if (!header) return;
+    const l = header.toLowerCase();
+    if (l === 'name' || l === 'student') {
+      nameIndex = idx;
+      return;
+    }
+    subjectHeaders.push({ index: idx, name: header.trim() });
   });
 
   if (nameIndex === -1) return [];
-
-  const subjectHeaders: { index: number; name: string }[] = [];
-  headerLine.forEach((header, idx) => {
-    if (idx === nameIndex) return;
-    if (header.trim()) {
-      subjectHeaders.push({ index: idx, name: header.trim() });
-    }
-  });
 
   const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
@@ -146,17 +145,18 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes('---')) continue;
-    const values = lines[i].split(separator).map(v => v.trim()).filter(v => v);
-    if (values.length < 2) continue;
+    // Keep raw parts to preserve index mapping
+    const rawParts = line.split(separator).map(v => v.trim());
+    if (rawParts.filter(v => v).length < 2) continue;
 
     const subjects: Record<string, number> = {};
     subjectHeaders.forEach(({ index, name }) => {
-      const value = parseFloat(values[index]) || 0;
+      const value = parseFloat(rawParts[index]) || 0;
       subjects[name] = value;
     });
 
     const student: JuniorStudentData = {
-      name: values[nameIndex] || '',
+      name: rawParts[nameIndex] || '',
       subjects,
       subjectNames,
     };
@@ -172,20 +172,20 @@ export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
   if (lines.length < 2) return [];
 
   const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-  const nameIndex = rawHeaders.findIndex(h => {
-    const l = h.toLowerCase();
-    return l === 'name' || l === 'student';
+  let nameIndex = -1;
+  const subjectHeaders: { index: number; name: string }[] = [];
+
+  rawHeaders.forEach((header, idx) => {
+    if (!header) return;
+    const l = header.toLowerCase();
+    if (l === 'name' || l === 'student') {
+      nameIndex = idx;
+      return;
+    }
+    subjectHeaders.push({ index: idx, name: header.trim() });
   });
 
   if (nameIndex === -1) return [];
-
-  const subjectHeaders: { index: number; name: string }[] = [];
-  rawHeaders.forEach((header, idx) => {
-    if (idx === nameIndex) return;
-    if (header.trim()) {
-      subjectHeaders.push({ index: idx, name: header.trim() });
-    }
-  });
 
   const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
