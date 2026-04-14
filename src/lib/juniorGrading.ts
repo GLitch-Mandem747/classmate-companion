@@ -116,12 +116,15 @@ export const calculateJuniorStudentResults = (
   return results;
 };
 
+/**
+ * Parse pipe-separated or tab-separated table data.
+ * Falls back to first column as name if no "Name"/"Student" header found.
+ */
 export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   const lines = text.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
 
   const separator = lines[0].includes('|') ? '|' : '\t';
-  // Keep raw parts with indices intact (don't filter empty strings)
   const rawHeaderParts = lines[0].split(separator).map(h => h.trim());
 
   let nameIndex = -1;
@@ -130,14 +133,24 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   rawHeaderParts.forEach((header, idx) => {
     if (!header) return;
     const l = header.toLowerCase();
-    if (l === 'name' || l === 'student') {
+    if (nameIndex === -1 && (l === 'name' || l === 'student' || l === 'student name' || l === 'learner')) {
       nameIndex = idx;
       return;
     }
     subjectHeaders.push({ index: idx, name: header.trim() });
   });
 
-  if (nameIndex === -1) return [];
+  // Fallback: use first non-empty column as name
+  if (nameIndex === -1) {
+    const firstNonEmpty = rawHeaderParts.findIndex(h => h.length > 0);
+    if (firstNonEmpty === -1) return [];
+    nameIndex = firstNonEmpty;
+    // Remove it from subjects if it was added
+    const subIdx = subjectHeaders.findIndex(s => s.index === nameIndex);
+    if (subIdx !== -1) subjectHeaders.splice(subIdx, 1);
+  }
+
+  if (subjectHeaders.length === 0) return [];
 
   const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
@@ -145,7 +158,6 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes('---')) continue;
-    // Keep raw parts to preserve index mapping
     const rawParts = line.split(separator).map(v => v.trim());
     if (rawParts.filter(v => v).length < 2) continue;
 
@@ -155,18 +167,18 @@ export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
       subjects[name] = value;
     });
 
-    const student: JuniorStudentData = {
-      name: rawParts[nameIndex] || '',
-      subjects,
-      subjectNames,
-    };
+    const studentName = (rawParts[nameIndex] || '').trim();
+    if (!studentName) continue;
 
-    if (student.name) students.push(student);
+    students.push({ name: studentName, subjects, subjectNames });
   }
 
   return students;
 };
 
+/**
+ * Parse CSV data. Falls back to first column as name if no "Name"/"Student" header found.
+ */
 export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
   const lines = text.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return [];
@@ -178,14 +190,23 @@ export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
   rawHeaders.forEach((header, idx) => {
     if (!header) return;
     const l = header.toLowerCase();
-    if (l === 'name' || l === 'student') {
+    if (nameIndex === -1 && (l === 'name' || l === 'student' || l === 'student name' || l === 'learner')) {
       nameIndex = idx;
       return;
     }
     subjectHeaders.push({ index: idx, name: header.trim() });
   });
 
-  if (nameIndex === -1) return [];
+  // Fallback: use first non-empty column as name
+  if (nameIndex === -1) {
+    const firstNonEmpty = rawHeaders.findIndex(h => h.length > 0);
+    if (firstNonEmpty === -1) return [];
+    nameIndex = firstNonEmpty;
+    const subIdx = subjectHeaders.findIndex(s => s.index === nameIndex);
+    if (subIdx !== -1) subjectHeaders.splice(subIdx, 1);
+  }
+
+  if (subjectHeaders.length === 0) return [];
 
   const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
@@ -200,13 +221,10 @@ export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
       subjects[name] = value;
     });
 
-    const student: JuniorStudentData = {
-      name: values[nameIndex] || '',
-      subjects,
-      subjectNames,
-    };
+    const studentName = (values[nameIndex] || '').trim();
+    if (!studentName) continue;
 
-    if (student.name) students.push(student);
+    students.push({ name: studentName, subjects, subjectNames });
   }
 
   return students;

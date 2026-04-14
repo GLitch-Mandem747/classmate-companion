@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
 import { JuniorStudentData, parseJuniorTableData, parseJuniorCSV } from '@/lib/juniorGrading';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 
@@ -20,12 +21,13 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
   if (jsonData.length < 2) return [];
 
   const headers = jsonData[0].map(h => String(h).trim());
-  const nameIndex = headers.findIndex(h => {
+  let nameIndex = headers.findIndex(h => {
     const l = h.toLowerCase();
-    return l === 'name' || l === 'student';
+    return l === 'name' || l === 'student' || l === 'student name' || l === 'learner';
   });
 
-  if (nameIndex === -1) return [];
+  // Fallback to first column
+  if (nameIndex === -1) nameIndex = 0;
 
   const subjectHeaders: { index: number; name: string }[] = [];
   headers.forEach((header, idx) => {
@@ -34,6 +36,8 @@ const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
       subjectHeaders.push({ index: idx, name: header.trim() });
     }
   });
+
+  if (subjectHeaders.length === 0) return [];
 
   const subjectNames = subjectHeaders.map(s => s.name);
   const students: JuniorStudentData[] = [];
@@ -71,27 +75,32 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
     try {
       const extension = file.name.split('.').pop()?.toLowerCase();
 
+      let students: JuniorStudentData[] = [];
       if (extension === 'xlsx' || extension === 'xls') {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
-        const students = parseExcelData(workbook);
-        if (students.length > 0) onImport(students);
+        students = parseExcelData(workbook);
       } else if (extension === 'docx') {
         const buffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-        const students = parseJuniorTableData(result.value);
-        if (students.length > 0) onImport(students);
+        students = parseJuniorTableData(result.value);
       } else if (extension === 'csv') {
         const text = await file.text();
-        const students = parseJuniorCSV(text);
-        if (students.length > 0) onImport(students);
+        students = parseJuniorCSV(text);
       } else {
         const text = await file.text();
-        const students = parseJuniorTableData(text);
-        if (students.length > 0) onImport(students);
+        students = parseJuniorTableData(text);
+      }
+
+      if (students.length > 0) {
+        onImport(students);
+        toast.success(`Imported ${students.length} students successfully`);
+      } else {
+        toast.error('No valid student data found in file. Ensure the first column contains student names.');
       }
     } catch (error) {
       console.error('Error processing file:', error);
+      toast.error('Error processing file');
     }
     setIsLoading(false);
   };
@@ -106,7 +115,7 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
   const handlePasteImport = () => {
     if (!pastedData.trim()) return;
     let students: JuniorStudentData[] = [];
-    if (pastedData.includes(',') && !pastedData.includes('|')) {
+    if (pastedData.includes(',') && !pastedData.includes('|') && !pastedData.includes('\t')) {
       students = parseJuniorCSV(pastedData);
     } else {
       students = parseJuniorTableData(pastedData);
@@ -114,6 +123,9 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
     if (students.length > 0) {
       onImport(students);
       setPastedData('');
+      toast.success(`Imported ${students.length} students successfully`);
+    } else {
+      toast.error('Could not parse any student data. Make sure the first row contains column headers and the first column has student names.');
     }
   };
 
@@ -123,7 +135,10 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 | Jane Smith | 85 | 88 | 72 | 90 | 68 | 78 | 85 | 80 |
 | Bob Wilson | 68 | 72 | 65 | 70 | 58 | 62 | 55 | 60 |`;
     const students = parseJuniorTableData(sampleData);
-    if (students.length > 0) onImport(students);
+    if (students.length > 0) {
+      onImport(students);
+      toast.success(`Loaded ${students.length} sample students`);
+    }
   };
 
   return (

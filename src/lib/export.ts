@@ -179,7 +179,7 @@ function generateReportCardHTML(
         </div>
         <div style="text-align: right;">
           <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <img src="${logoUri}" style="width: 100px; height: 100px; object-fit: contain;" />
+          <div style="width: 100px; height: 100px;"></div>
         </div>
       </div>
     </div>`;
@@ -382,7 +382,7 @@ function generateJuniorReportCardHTML(
         </div>
         <div style="text-align: right;">
           <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <img src="${logoUri}" style="width: 100px; height: 100px; object-fit: contain;" />
+          <div style="width: 100px; height: 100px;"></div>
         </div>
       </div>
     </div>`;
