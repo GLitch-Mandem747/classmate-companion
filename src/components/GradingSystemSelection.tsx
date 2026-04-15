@@ -7,7 +7,7 @@ interface GradingSystemSelectionProps {
 
 export const GradingSystemSelection = ({ onSelectSenior, onSelectJunior }: GradingSystemSelectionProps) => {
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative">
       <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-12">
         Choose Grading System
       </h1>
@@ -26,6 +26,10 @@ export const GradingSystemSelection = ({ onSelectSenior, onSelectJunior }: Gradi
         >
           Senior Grading System
         </Button>
+      </div>
+      
+      <div className="absolute bottom-6 text-center">
+        <p className="text-xs font-bold tracking-[0.3em] text-muted-foreground">SOFTWAREARMY</p>
       </div>
     </div>
   );
