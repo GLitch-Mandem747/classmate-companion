@@ -323,6 +323,9 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           Junior Grading System • 8-Point Scale
         </div>
+        <div className="container mx-auto px-4 text-center mt-2">
+          <p className="text-xs font-bold tracking-[0.3em] text-muted-foreground">SOFTWAREARMY</p>
+        </div>
       </footer>
     </div>
   );

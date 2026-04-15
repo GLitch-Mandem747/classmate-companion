@@ -117,19 +117,21 @@ function generateReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
-      <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
-        <div style="flex-shrink: 0; margin-right: 12px;">
-          <img src="${logoUri}" alt="School Logo" style="width: 120px; height: 120px; object-fit: contain;" />
-        </div>
-        <div style="flex: 1; text-align: center; padding-top: 4px;">
-          <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
-          <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        </div>
-      </div>
+    <div style="page-break-after: always; page-break-inside: avoid; mso-page-break-before: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px;">
+        <tr>
+          <td style="width: 120px; vertical-align: top; border: none; padding: 0;">
+            <img src="${logoUri}" alt="School Logo" style="width: 120px; height: 120px;" />
+          </td>
+          <td style="vertical-align: top; text-align: center; padding-top: 4px; border: none;">
+            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
+            <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+          </td>
+        </tr>
+      </table>
       <p style="text-align: center; font-size: 7.5pt; margin: 0 0 8px 0;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: <span style="color: #003399; text-decoration: underline;">stdominicsboys21@gmail.com</span></p>
       <div style="border-top: 2px solid #000; margin-bottom: 12px;"></div>
       <h2 style="font-weight: bold; text-align: center; margin: 0 0 14px 0; font-size: 14pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
@@ -155,13 +157,15 @@ function generateReportCardHTML(
           <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">POSITION IN CLASS: ${rank} / ${totalStudents}</td>
         </tr>
       </table>
-      <table style="width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 6px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 6px; border: 1.5px solid #000;">
         <tr>
-          <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 60%;">CLASS TEACHER'S REMARKS</td>
-          <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">${teacherName.toUpperCase()}</td>
+          <td style="border-bottom: 1px solid #000; padding: 6px 8px; font-weight: bold; width: 60%;">CLASS TEACHER'S REMARKS</td>
+          <td style="border-bottom: 1px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">${teacherName.toUpperCase()}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding: 8px; font-size: 10pt; line-height: 1.6; text-align: justify;">${remark || '_______________________________________________________________________________'}</td>
         </tr>
       </table>
-      <div style="font-size: 10pt; line-height: 1.6; margin-bottom: 16px; text-align: justify;">${remark || '_______________________________________________________________________________'}</div>
       <div style="margin-bottom: 16px;">
         <p style="text-align: center; font-weight: bold; margin: 0 0 6px 0; font-size: 9pt;">Grades are awarded on an 8 point grade scale as follows</p>
         <table style="width: 90%; margin: 0 auto; font-size: 9pt; border-collapse: collapse;">
@@ -172,16 +176,18 @@ function generateReportCardHTML(
           </tbody>
         </table>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
-        <div>
-          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
-          <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
-        </div>
-        <div style="text-align: right;">
-          <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <div style="width: 100px; height: 100px;"></div>
-        </div>
-      </div>
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 20px; font-size: 10pt;">
+        <tr>
+          <td style="vertical-align: top; border: none; padding: 0;">
+            <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+            <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
+          </td>
+          <td style="vertical-align: top; text-align: right; border: none; padding: 0;">
+            <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
+            <div style="width: 100px; height: 100px;"></div>
+          </td>
+        </tr>
+      </table>
     </div>`;
 }
 
@@ -209,7 +215,7 @@ export async function exportReportCards(
     const remark = remarksMap?.get(s.name);
     return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
   }).join('');
-  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@page{size:A4;margin:15mm 18mm;}body{margin:0;padding:0;font-family:'Times New Roman',Times,serif;}@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
   const blob = new Blob([fullHTML], { type: 'application/msword' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -322,17 +328,21 @@ function generateJuniorReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
-      <div style="display: flex; align-items: flex-start; margin-bottom: 4px;">
-        <div style="flex-shrink: 0; margin-right: 12px;"><img src="${logoUri || ''}" alt="School Logo" style="width: 120px; height: 120px; object-fit: contain;" /></div>
-        <div style="flex: 1; text-align: center; padding-top: 4px;">
-          <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
-          <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
-          <p style="margin: 0 0 1px 0; font-size: 9pt;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
-        </div>
-      </div>
+    <div style="page-break-after: always; page-break-inside: avoid; mso-page-break-before: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px;">
+        <tr>
+          <td style="width: 120px; vertical-align: top; border: none; padding: 0;">
+            <img src="${logoUri || ''}" alt="School Logo" style="width: 120px; height: 120px;" />
+          </td>
+          <td style="vertical-align: top; text-align: center; padding-top: 4px; border: none;">
+            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
+            <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
+            <p style="margin: 0 0 1px 0; font-size: 9pt;">KABISAPI – MUSHINDAMO, ZAMBIA.</p>
+          </td>
+        </tr>
+      </table>
       <p style="text-align: center; font-size: 7.5pt; margin: 0 0 8px 0;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: <span style="color: #003399; text-decoration: underline;">stdominicsboys21@gmail.com</span></p>
       <div style="border-top: 2px solid #000; margin-bottom: 12px;"></div>
       <h2 style="font-weight: bold; text-align: center; margin: 0 0 14px 0; font-size: 14pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
@@ -358,13 +368,15 @@ function generateJuniorReportCardHTML(
           <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">POSITION IN CLASS: ${rank} / ${totalStudents}</td>
         </tr>
       </table>
-      <table style="width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 6px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 6px; border: 1.5px solid #000;">
         <tr>
-          <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 60%;">CLASS TEACHER'S REMARKS</td>
-          <td style="border: 1.5px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">${teacherName.toUpperCase()}</td>
+          <td style="border-bottom: 1px solid #000; padding: 6px 8px; font-weight: bold; width: 60%;">CLASS TEACHER'S REMARKS</td>
+          <td style="border-bottom: 1px solid #000; padding: 6px 8px; font-weight: bold; width: 40%; text-align: right;">${teacherName.toUpperCase()}</td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding: 8px; font-size: 10pt; line-height: 1.6; text-align: justify;">${remark || '_______________________________________________________________________________'}</td>
         </tr>
       </table>
-      <div style="font-size: 10pt; line-height: 1.6; margin-bottom: 16px; text-align: justify;">${remark || '_______________________________________________________________________________'}</div>
       <div style="margin-bottom: 16px;">
         <p style="text-align: center; font-weight: bold; margin: 0 0 6px 0; font-size: 9pt;">Grades are awarded on an 8 point grade scale as follows</p>
         <table style="width: 90%; margin: 0 auto; font-size: 9pt; border-collapse: collapse;">
@@ -375,16 +387,18 @@ function generateJuniorReportCardHTML(
           </tbody>
         </table>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 20px; font-size: 10pt;">
-        <div>
-          <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
-          <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
-        </div>
-        <div style="text-align: right;">
-          <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-          <div style="width: 100px; height: 100px;"></div>
-        </div>
-      </div>
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 20px; font-size: 10pt;">
+        <tr>
+          <td style="vertical-align: top; border: none; padding: 0;">
+            <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
+            <div style="border-top: 1px solid #000; width: 150px; padding-top: 2px; font-size: 8pt;">Signature</div>
+          </td>
+          <td style="vertical-align: top; text-align: right; border: none; padding: 0;">
+            <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
+            <div style="width: 100px; height: 100px;"></div>
+          </td>
+        </tr>
+      </table>
     </div>`;
 }
 
@@ -435,7 +449,7 @@ export async function exportJuniorReportCards(
     const remark = remarksMap?.get(s.name);
     return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, students.length, remark, logoUri, mandatorySubjects);
   }).join('');
-  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@page{size:A4;margin:15mm 18mm;}body{margin:0;padding:0;font-family:'Times New Roman',Times,serif;}@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
   const blob = new Blob([fullHTML], { type: 'application/msword' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
