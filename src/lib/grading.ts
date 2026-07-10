@@ -1,4 +1,5 @@
 // Senior grading system - flexible subjects with auto-detected Science (Chemistry+Physics avg)
+import { detectTableFromText, detectTableFromGrid, detectedTableToStudents } from './tableDetection';
 
 export interface GradeScale {
   grade: string;
@@ -180,101 +181,24 @@ export function calculateStudentResults(
 }
 
 export function parseTableData(text: string): StudentData[] {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
-
-  const separator = lines[0].includes('|') ? '|' : '\t';
-
-  // Don't filter empty strings - use raw split to preserve indices
-  const rawHeaderParts = lines[0].split(separator).map(h => h.trim());
-
-  let nameIndex = -1;
-  const subjectHeaders: { index: number; name: string }[] = [];
-
-  rawHeaderParts.forEach((header, idx) => {
-    if (!header) return;
-    const lower = header.toLowerCase();
-    if (lower === 'name' || lower === 'student') {
-      nameIndex = idx;
-      return;
-    }
-    subjectHeaders.push({ index: idx, name: header.trim() });
-  });
-
-  if (nameIndex === -1) nameIndex = 0;
-  const subjectNames = subjectHeaders.map(s => s.name);
-
-  const students: StudentData[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.includes('---')) continue;
-    const rawParts = line.split(separator).map(p => p.trim());
-    if (rawParts.filter(p => p).length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const val = parseFloat(rawParts[index]);
-      if (!isNaN(val)) subjects[name] = val;
-      else subjects[name] = 0;
-    });
-
-    const student: StudentData = {
-      name: rawParts[nameIndex] || 'Unknown',
-      subjects,
-      subjectNames,
-    };
-
-    if (student.name && student.name !== 'Unknown') students.push(student);
-  }
-
-  return students;
+  const table = detectTableFromText(text);
+  if (!table) return [];
+  return detectedTableToStudents(table);
 }
 
 export function parseCSV(text: string): StudentData[] {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 2) return [];
+  const grid = text
+    .split(/\r?\n/)
+    .filter(l => l.trim())
+    .map(l => l.split(',').map(v => v.trim().replace(/^["']|["']$/g, '')));
+  const table = detectTableFromGrid(grid);
+  if (!table) return [];
+  return detectedTableToStudents(table);
+}
 
-  const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-
-  let nameIndex = -1;
-  const subjectHeaders: { index: number; name: string }[] = [];
-
-  rawHeaders.forEach((header, idx) => {
-    const lower = header.toLowerCase();
-    if (lower === 'name' || lower === 'student') {
-      nameIndex = idx;
-      return;
-    }
-    if (header.trim()) {
-      subjectHeaders.push({ index: idx, name: header.trim() });
-    }
-  });
-
-  if (nameIndex === -1) nameIndex = 0;
-  const subjectNames = subjectHeaders.map(s => s.name);
-
-  const students: StudentData[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(',').map(p => p.trim().replace(/^["']|["']$/g, ''));
-    if (parts.length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const val = parseFloat(parts[index]);
-      if (!isNaN(val)) subjects[name] = val;
-      else subjects[name] = 0;
-    });
-
-    const student: StudentData = {
-      name: parts[nameIndex] || 'Unknown',
-      subjects,
-      subjectNames,
-    };
-
-    if (student.name && student.name !== 'Unknown') students.push(student);
-  }
-
-  return students;
+/** Parse a 2D grid (from Excel) into senior students, ignoring extraneous rows/cols. */
+export function parseGrid(grid: string[][]): StudentData[] {
+  const table = detectTableFromGrid(grid);
+  if (!table) return [];
+  return detectedTableToStudents(table);
 }
