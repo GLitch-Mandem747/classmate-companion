@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
 import { JuniorStudentData, parseJuniorTableData, parseJuniorCSV } from '@/lib/juniorGrading';
+import { parseJuniorGrid } from '@/lib/juniorGrading';
+import { htmlTablesToGrids, detectTableFromGrid, detectedTableToStudents } from '@/lib/tableDetection';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -14,54 +16,32 @@ interface JuniorDataImportProps {
 }
 
 const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as string[][];
-
-  if (jsonData.length < 2) return [];
-
-  const headers = jsonData[0].map(h => String(h).trim());
-  let nameIndex = headers.findIndex(h => {
-    const l = h.toLowerCase();
-    return l === 'name' || l === 'student' || l === 'student name' || l === 'learner';
-  });
-
-  // Fallback to first column
-  if (nameIndex === -1) nameIndex = 0;
-
-  const subjectHeaders: { index: number; name: string }[] = [];
-  headers.forEach((header, idx) => {
-    if (idx === nameIndex) return;
-    if (header.trim()) {
-      subjectHeaders.push({ index: idx, name: header.trim() });
-    }
-  });
-
-  if (subjectHeaders.length === 0) return [];
-
-  const subjectNames = subjectHeaders.map(s => s.name);
-  const students: JuniorStudentData[] = [];
-
-  for (let i = 1; i < jsonData.length; i++) {
-    const row = jsonData[i];
-    if (!row || row.length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const value = parseFloat(String(row[index])) || 0;
-      subjects[name] = value;
-    });
-
-    const student: JuniorStudentData = {
-      name: String(row[nameIndex] || '').trim(),
-      subjects,
-      subjectNames,
-    };
-
-    if (student.name) students.push(student);
+  for (const sheetName of workbook.SheetNames) {
+    const worksheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
+    const grid = data.map(row => (row || []).map(c => (c == null ? '' : String(c).trim())));
+    const students = parseJuniorGrid(grid);
+    if (students.length > 0) return students;
   }
+  return [];
+};
 
-  return students;
+const parseDocx = async (buffer: ArrayBuffer): Promise<JuniorStudentData[]> => {
+  try {
+    const html = await mammoth.convertToHtml({ arrayBuffer: buffer });
+    const grids = htmlTablesToGrids(html.value);
+    for (const g of grids) {
+      const t = detectTableFromGrid(g);
+      if (t) {
+        const students = detectedTableToStudents(t);
+        if (students.length) return students;
+      }
+    }
+  } catch {
+    // fall through
+  }
+  const raw = await mammoth.extractRawText({ arrayBuffer: buffer });
+  return parseJuniorTableData(raw.value);
 };
 
 export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
@@ -82,8 +62,7 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
         students = parseExcelData(workbook);
       } else if (extension === 'docx') {
         const buffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-        students = parseJuniorTableData(result.value);
+        students = await parseDocx(buffer);
       } else if (extension === 'csv') {
         const text = await file.text();
         students = parseJuniorCSV(text);
@@ -114,11 +93,10 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
 
   const handlePasteImport = () => {
     if (!pastedData.trim()) return;
-    let students: JuniorStudentData[] = [];
-    if (pastedData.includes(',') && !pastedData.includes('|') && !pastedData.includes('\t')) {
+    // Detector handles pipe/tab/comma/multi-space uniformly.
+    let students: JuniorStudentData[] = parseJuniorTableData(pastedData);
+    if (students.length === 0 && pastedData.includes(',')) {
       students = parseJuniorCSV(pastedData);
-    } else {
-      students = parseJuniorTableData(pastedData);
     }
     if (students.length > 0) {
       onImport(students);
