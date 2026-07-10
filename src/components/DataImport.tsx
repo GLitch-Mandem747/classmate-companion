@@ -5,6 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StudentData, parseTableData, parseCSV } from '@/lib/grading';
+import { parseGrid } from '@/lib/grading';
+import { htmlTablesToGrids, detectTableFromGrid, detectedTableToStudents } from '@/lib/tableDetection';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -14,51 +16,35 @@ interface DataImportProps {
 }
 
 function parseExcelData(workbook: XLSX.WorkBook): StudentData[] {
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
-  if (data.length < 2) return [];
-
-  const headers = data[0].map((h: any) => String(h || '').trim());
-  let nameIndex = -1;
-  const subjectHeaders: { index: number; name: string }[] = [];
-
-  headers.forEach((header: string, idx: number) => {
-    const lower = header.toLowerCase();
-    if (lower === 'name' || lower === 'student') {
-      nameIndex = idx;
-      return;
-    }
-    if (header.trim()) {
-      subjectHeaders.push({ index: idx, name: header.trim() });
-    }
-  });
-
-  if (nameIndex === -1) nameIndex = 0;
-  const subjectNames = subjectHeaders.map(s => s.name);
-
-  const students: StudentData[] = [];
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    if (!row || row.length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const val = parseFloat(row[index]?.toString());
-      if (!isNaN(val)) subjects[name] = val;
-      else subjects[name] = 0;
-    });
-
-    const student: StudentData = {
-      name: row[nameIndex]?.toString()?.trim() || '',
-      subjects,
-      subjectNames,
-    };
-
-    if (student.name) students.push(student);
+  // Read every sheet, try each until one yields a table.
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const data = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' });
+    const grid = data.map(row => (row || []).map(c => (c == null ? '' : String(c).trim())));
+    const students = parseGrid(grid);
+    if (students.length > 0) return students;
   }
+  return [];
+}
 
-  return students;
+async function parseDocxData(buffer: ArrayBuffer): Promise<StudentData[]> {
+  // First try structured tables via HTML.
+  try {
+    const html = await mammoth.convertToHtml({ arrayBuffer: buffer });
+    const grids = htmlTablesToGrids(html.value);
+    for (const g of grids) {
+      const t = detectTableFromGrid(g);
+      if (t) {
+        const students = detectedTableToStudents(t);
+        if (students.length) return students;
+      }
+    }
+  } catch {
+    // fall through
+  }
+  // Fall back to raw text.
+  const raw = await mammoth.extractRawText({ arrayBuffer: buffer });
+  return parseTableData(raw.value);
 }
 
 export function DataImport({ onImport }: DataImportProps) {
@@ -78,8 +64,7 @@ export function DataImport({ onImport }: DataImportProps) {
         students = parseExcelData(workbook);
       } else if (fileName.endsWith('.docx')) {
         const buffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-        students = parseTableData(result.value);
+        students = await parseDocxData(buffer);
       } else if (fileName.endsWith('.csv')) {
         const text = await file.text();
         students = parseCSV(text);
