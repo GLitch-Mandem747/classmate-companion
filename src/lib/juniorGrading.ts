@@ -1,5 +1,6 @@
 // Junior grading system - fully flexible subjects
 // All subjects are dynamic - user chooses mandatory via UI
+import { detectTableFromText, detectedTableToStudents, detectTableFromGrid } from './tableDetection';
 
 export interface JuniorStudentData {
   name: string;
@@ -121,111 +122,27 @@ export const calculateJuniorStudentResults = (
  * Falls back to first column as name if no "Name"/"Student" header found.
  */
 export const parseJuniorTableData = (text: string): JuniorStudentData[] => {
-  const lines = text.trim().split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
-
-  const separator = lines[0].includes('|') ? '|' : '\t';
-  const rawHeaderParts = lines[0].split(separator).map(h => h.trim());
-
-  let nameIndex = -1;
-  const subjectHeaders: { index: number; name: string }[] = [];
-
-  rawHeaderParts.forEach((header, idx) => {
-    if (!header) return;
-    const l = header.toLowerCase();
-    if (nameIndex === -1 && (l === 'name' || l === 'student' || l === 'student name' || l === 'learner')) {
-      nameIndex = idx;
-      return;
-    }
-    subjectHeaders.push({ index: idx, name: header.trim() });
-  });
-
-  // Fallback: use first non-empty column as name
-  if (nameIndex === -1) {
-    const firstNonEmpty = rawHeaderParts.findIndex(h => h.length > 0);
-    if (firstNonEmpty === -1) return [];
-    nameIndex = firstNonEmpty;
-    // Remove it from subjects if it was added
-    const subIdx = subjectHeaders.findIndex(s => s.index === nameIndex);
-    if (subIdx !== -1) subjectHeaders.splice(subIdx, 1);
-  }
-
-  if (subjectHeaders.length === 0) return [];
-
-  const subjectNames = subjectHeaders.map(s => s.name);
-  const students: JuniorStudentData[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.includes('---')) continue;
-    const rawParts = line.split(separator).map(v => v.trim());
-    if (rawParts.filter(v => v).length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const value = parseFloat(rawParts[index]) || 0;
-      subjects[name] = value;
-    });
-
-    const studentName = (rawParts[nameIndex] || '').trim();
-    if (!studentName) continue;
-
-    students.push({ name: studentName, subjects, subjectNames });
-  }
-
-  return students;
+  const table = detectTableFromText(text);
+  if (!table) return [];
+  return detectedTableToStudents(table);
 };
 
 /**
- * Parse CSV data. Falls back to first column as name if no "Name"/"Student" header found.
+ * Parse CSV data.
  */
 export const parseJuniorCSV = (text: string): JuniorStudentData[] => {
-  const lines = text.trim().split('\n').filter(line => line.trim());
-  if (lines.length < 2) return [];
+  const grid = text
+    .split(/\r?\n/)
+    .filter(l => l.trim())
+    .map(l => l.split(',').map(v => v.trim().replace(/^["']|["']$/g, '')));
+  const table = detectTableFromGrid(grid);
+  if (!table) return [];
+  return detectedTableToStudents(table);
+};
 
-  const rawHeaders = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-  let nameIndex = -1;
-  const subjectHeaders: { index: number; name: string }[] = [];
-
-  rawHeaders.forEach((header, idx) => {
-    if (!header) return;
-    const l = header.toLowerCase();
-    if (nameIndex === -1 && (l === 'name' || l === 'student' || l === 'student name' || l === 'learner')) {
-      nameIndex = idx;
-      return;
-    }
-    subjectHeaders.push({ index: idx, name: header.trim() });
-  });
-
-  // Fallback: use first non-empty column as name
-  if (nameIndex === -1) {
-    const firstNonEmpty = rawHeaders.findIndex(h => h.length > 0);
-    if (firstNonEmpty === -1) return [];
-    nameIndex = firstNonEmpty;
-    const subIdx = subjectHeaders.findIndex(s => s.index === nameIndex);
-    if (subIdx !== -1) subjectHeaders.splice(subIdx, 1);
-  }
-
-  if (subjectHeaders.length === 0) return [];
-
-  const subjectNames = subjectHeaders.map(s => s.name);
-  const students: JuniorStudentData[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-    if (values.length < 2) continue;
-
-    const subjects: Record<string, number> = {};
-    subjectHeaders.forEach(({ index, name }) => {
-      const value = parseFloat(values[index]) || 0;
-      subjects[name] = value;
-    });
-
-    const studentName = (values[nameIndex] || '').trim();
-    if (!studentName) continue;
-
-    students.push({ name: studentName, subjects, subjectNames });
-  }
-
-  return students;
+/** Parse a 2D grid (e.g. from Excel) into junior students, ignoring extraneous rows/cols. */
+export const parseJuniorGrid = (grid: string[][]): JuniorStudentData[] => {
+  const table = detectTableFromGrid(grid);
+  if (!table) return [];
+  return detectedTableToStudents(table);
 };
