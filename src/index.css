@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {
   :root {
@@ -42,8 +43,10 @@
 
     --radius: 0.5rem;
 
+
     --font-sans: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+
 
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 98%;
@@ -54,7 +57,8 @@
     --sidebar-border: 0 0% 15%;
     --sidebar-ring: 217 91% 60%;
 
-    /* Grade colors (1-9 scale) */
+
+    /* Grade colors */
     --grade-1: 142 76% 45%;
     --grade-2: 160 84% 39%;
     --grade-3: 173 80% 40%;
@@ -62,9 +66,9 @@
     --grade-5: 38 92% 50%;
     --grade-6: 25 95% 53%;
     --grade-7: 15 90% 55%;
-    /* Grade 8 removed - jumps from 7 to 9 */
-    --grade-9: 0 84% 60%;
+    --grade-8: 0 84% 60%;
   }
+
 
   .dark {
     --background: 0 0% 4%;
@@ -72,76 +76,142 @@
   }
 }
 
+
+
 @layer base {
+
   * {
     @apply border-border;
   }
+
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold tracking-tight;
   }
 }
 
+
+
+
 @layer components {
+
+
   .table-header {
     @apply bg-secondary text-foreground font-medium;
   }
+
 
   .table-row-alt:nth-child(even) {
     @apply bg-muted/30;
   }
 
+
   .grade-badge {
     @apply inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold min-w-[28px];
   }
 
-  .grade-1 { @apply bg-[hsl(var(--grade-1))] text-white; }
-  .grade-2 { @apply bg-[hsl(var(--grade-2))] text-white; }
-  .grade-3 { @apply bg-[hsl(var(--grade-3))] text-white; }
-  .grade-4 { @apply bg-[hsl(var(--grade-4))] text-white; }
-  .grade-5 { @apply bg-[hsl(var(--grade-5))] text-black; }
-  .grade-6 { @apply bg-[hsl(var(--grade-6))] text-white; }
-  .grade-7 { @apply bg-[hsl(var(--grade-7))] text-white; }
-  .grade-9 { @apply bg-[hsl(var(--grade-9))] text-white; }
+
+  .grade-1 {
+    @apply bg-[hsl(var(--grade-1))] text-white;
+  }
+
+
+  .grade-2 {
+    @apply bg-[hsl(var(--grade-2))] text-white;
+  }
+
+
+  .grade-3 {
+    @apply bg-[hsl(var(--grade-3))] text-white;
+  }
+
+
+  .grade-4 {
+    @apply bg-[hsl(var(--grade-4))] text-white;
+  }
+
+
+  .grade-5 {
+    @apply bg-[hsl(var(--grade-5))] text-black;
+  }
+
+
+  .grade-6 {
+    @apply bg-[hsl(var(--grade-6))] text-white;
+  }
+
+
+  .grade-7 {
+    @apply bg-[hsl(var(--grade-7))] text-white;
+  }
+
+
+  .grade-8 {
+    @apply bg-[hsl(var(--grade-8))] text-white;
+  }
+
 }
 
+
+
+
 @layer utilities {
+
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted)) transparent;
   }
+
 
   .scrollbar-thin::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
+
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
     border-radius: 4px;
   }
+
 }
 
+
+
+
 /* Print styles for report cards */
+
 @media print {
+
   body {
     background: white !important;
     color: black !important;
   }
 
+
   .no-print {
     display: none !important;
   }
 
+
   .print-break {
     page-break-after: always;
   }
+
 }

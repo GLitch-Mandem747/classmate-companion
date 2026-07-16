@@ -136,7 +136,7 @@ export function JuniorResultsTable({ results, mandatorySubjects, onToggleMandato
                     <TableCell className="font-medium sticky left-[60px] bg-card z-10">{student.name}</TableCell>
                     {subjectNames.map((name) => {
                       const score = student.subjects[name] || 0;
-                      const grade = student.grades[name] || '9';
+                      const grade = student.grades[name] || '8';
                       const isInBest6 = bestSixSet.has(name);
                       return (
                         <TableCell key={name} className={`text-center ${isInBest6 ? 'bg-green-900/20' : ''}`}>

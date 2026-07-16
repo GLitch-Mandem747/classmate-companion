@@ -147,7 +147,7 @@ const ClassView = () => {
         // Senior student
         const sr = student as StudentResult;
         subjects = sr.subjectNames.map(name => ({
-          subject: name, score: sr.subjects[name] || 0, grade: sr.grades[name] || '9'
+          subject: name, score: sr.subjects[name] || 0, grade: sr.grades[name] || '8'
         }));
         gradePoints = sr.overallGradePoints;
         totalStudents = tests[activeTest]?.results.length || 0;
@@ -157,7 +157,7 @@ const ClassView = () => {
         subjects = jr.subjectNames.map(name => ({
           subject: name,
           score: jr.subjects[name] || 0,
-          grade: jr.grades[name] || '9'
+          grade: jr.grades[name] || '8'
         }));
         gradePoints = jr.overallGradePoints;
         totalStudents = juniorTests[activeTest]?.length || 0;

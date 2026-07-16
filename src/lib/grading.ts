@@ -15,7 +15,7 @@ export const GRADE_SCALE: GradeScale[] = [
   { grade: '5', minScore: 60, maxScore: 64 },
   { grade: '6', minScore: 55, maxScore: 59 },
   { grade: '7', minScore: 50, maxScore: 54 },
-  { grade: '9', minScore: 0, maxScore: 49 },
+  { grade: '8', minScore: 0, maxScore: 49 },
 ];
 
 export interface StudentData {
@@ -63,12 +63,12 @@ export function getGrade(score: number): string {
   const gradeEntry = GRADE_SCALE.find(
     (g) => score >= g.minScore && score <= g.maxScore
   );
-  return gradeEntry?.grade || '9';
+  return gradeEntry?.grade || '8';
 }
 
 export function getGradePoints(score: number): number {
   const grade = getGrade(score);
-  return grade === '9' ? 9 : parseInt(grade);
+  return grade === '8' ? 8 : parseInt(grade);
 }
 
 export function getGradeClass(grade: string): string {
@@ -80,7 +80,7 @@ export function getGradeClass(grade: string): string {
     case '5': return 'grade-5';
     case '6': return 'grade-6';
     case '7': return 'grade-7';
-    default: return 'grade-9';
+    default: return 'grade-8';
   }
 }
 

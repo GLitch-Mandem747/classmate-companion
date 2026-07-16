@@ -154,7 +154,7 @@ export function ResultsTable({ results, mandatorySubjects, onToggleMandatory }: 
                     <TableCell className="font-medium sticky left-[60px] bg-card z-10">{student.name}</TableCell>
                     {columns.map((col) => {
                       const score = getScore(student, col.key);
-                      const grade = student.grades[col.key] || '9';
+                      const grade = student.grades[col.key] || '8';
                       const isInBest6 = bestSixSet.has(col.key);
                       return (
                         <TableCell key={col.key} className={`text-center ${col.isScience ? 'bg-primary/5' : ''} ${isInBest6 ? 'bg-green-500/10' : ''}`}>

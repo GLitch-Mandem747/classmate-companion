@@ -26,7 +26,7 @@ function juniorToRemarkStudents(results: JuniorStudentResult[]): RemarkStudent[]
     const subjects = r.subjectNames.map(name => ({
       subject: name,
       score: r.subjects[name] || 0,
-      grade: r.grades[name] || '9',
+      grade: r.grades[name] || '8',
     }));
     return {
       id: r.id,

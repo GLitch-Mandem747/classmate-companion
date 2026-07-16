@@ -11,7 +11,7 @@ export function GradingScale() {
           Grading Scale
         </CardTitle>
         <CardDescription>
-          Grades are awarded on an 8 point scale (1 = best, 9 = lowest, no grade 8)
+          Grades are awarded on an 8 point scale (1 = best, 8 = lowest)
         </CardDescription>
       </CardHeader>
       <CardContent>
