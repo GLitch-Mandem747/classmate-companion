@@ -1,5 +1,5 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "classmate-companion",
   "private": true,
   "version": "0.0.0",
   "main": "electron/main.cjs",
@@ -88,9 +88,9 @@
     "vite": "^5.4.19",
     "wait-on": "^7.2.0"
   },
-  "build": {
-    "appId": "com.softwarearmy.app",
-    "productName": "SoftwareArmy",
+    "build": {
+    "appId": "com.softwarearmy.classmatecompanion",
+    "productName": "Classmate Companion",
     "directories": {
       "output": "release"
     },
@@ -98,9 +98,23 @@
       "dist/**/*",
       "electron/**/*"
     ],
+    "asar": true,
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "electron/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   }
 }
