@@ -93,7 +93,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
       return;
     }
     await exportReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks, mandatorySubjects);
-    toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
+    toast({ title: 'Report Cards Ready', description: 'A print window opened — choose "Save as PDF" to download.' });
   };
 
   const currentTest = tests[activeTest];
@@ -250,7 +250,7 @@ export const SeniorDashboard = ({ onBack }: SeniorDashboardProps) => {
                   <div className="flex flex-wrap gap-3">
                     <Button onClick={handleExportReportCards} className="w-full sm:w-auto">
                       <Download className="h-4 w-4 mr-2" />
-                      Download Report Cards
+                      Download Report Cards (PDF)
                     </Button>
                     <ReportCardPreview
                       studentNames={latestResults.map(r => r.name)}

@@ -17,6 +17,65 @@ async function getLogoDataUri(): Promise<string> {
 
 function getLogoUrl(): string { return '/images/school-logo.png'; }
 
+const REPORT_PAGE_CSS = `
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  html, body { margin: 0; padding: 0; font-family: 'Times New Roman', Times, serif; background: #fff; color: #000; }
+  .report-card {
+    width: 100%;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
+  }
+  .report-card:last-child { page-break-after: auto; break-after: auto; }
+  table { border-collapse: collapse; }
+  @media print {
+    html, body { width: 210mm; }
+    .report-card { page-break-inside: avoid; break-inside: avoid; }
+  }
+`;
+
+/**
+ * Open a printable window with the report cards and trigger the print dialog,
+ * where the user chooses "Save as PDF". Guarantees one report card per page.
+ */
+function printReportCards(content: string, title: string): void {
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${REPORT_PAGE_CSS}</style></head><body>${content}</body></html>`;
+  const win = window.open('', '_blank');
+  if (!win) {
+    // Popup blocked - fall back to an iframe print.
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(fullHTML);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => iframe.remove(), 60000);
+    }, 600);
+    return;
+  }
+  win.document.open();
+  win.document.write(fullHTML);
+  win.document.close();
+  const doPrint = () => {
+    win.focus();
+    win.print();
+  };
+  if (win.document.readyState === 'complete') setTimeout(doPrint, 400);
+  else win.addEventListener('load', () => setTimeout(doPrint, 400));
+}
+
 export interface TestData {
   name: string;
   results: StudentResult[];
@@ -117,14 +176,14 @@ function generateReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; page-break-inside: avoid; mso-page-break-before: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
+    <div class="report-card" style="page-break-after: always; page-break-inside: avoid; width: 100%; max-width: 200mm; padding: 4mm; margin: 0 auto; font-family: 'Times New Roman', Times, serif; background: white; color: #000; box-sizing: border-box; font-size: 9.5pt; line-height: 1.15;">
       <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px;">
         <tr>
-          <td style="width: 120px; vertical-align: top; border: none; padding: 0;">
-            <img src="${logoUri}" alt="School Logo" style="width: 120px; height: 120px;" />
+          <td style="width: 95px; vertical-align: top; border: none; padding: 0;">
+            <img src="${logoUri}" alt="School Logo" style="width: 95px; height: 95px;" />
           </td>
           <td style="vertical-align: top; text-align: center; padding-top: 4px; border: none;">
-            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
+            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 16pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
@@ -133,9 +192,9 @@ function generateReportCardHTML(
         </tr>
       </table>
       <p style="text-align: center; font-size: 7.5pt; margin: 0 0 8px 0;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: <span style="color: #003399; text-decoration: underline;">stdominicsboys21@gmail.com</span></p>
-      <div style="border-top: 2px solid #000; margin-bottom: 12px;"></div>
-      <h2 style="font-weight: bold; text-align: center; margin: 0 0 14px 0; font-size: 14pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
-      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 10pt; margin-bottom: 10px;">
+      <div style="border-top: 2px solid #000; margin-bottom: 8px;"></div>
+      <h2 style="font-weight: bold; text-align: center; margin: 0 0 10px 0; font-size: 13pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
+      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 8px;">
         <tr><td style="width: 33%; padding: 2px 0; border: none;"><span style="font-weight: bold;">STUDENT NAME</span></td><td style="width: 34%; padding: 2px 0; border: none;"><span style="font-weight: bold;">CLASS</span></td><td style="width: 33%; padding: 2px 0; border: none; text-align: right;"><span style="font-weight: bold;">ENTRY RESULTS</span></td></tr>
         <tr><td style="padding: 2px 0; border: none;">${student.name.toUpperCase()}</td><td style="padding: 2px 0; border: none;">${className}</td><td style="padding: 2px 0; border: none; text-align: right;"></td></tr>
       </table>
@@ -176,7 +235,7 @@ function generateReportCardHTML(
           </tbody>
         </table>
       </div>
-      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 20px; font-size: 10pt;">
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 14px; font-size: 9.5pt;">
         <tr>
           <td style="vertical-align: top; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
@@ -184,7 +243,7 @@ function generateReportCardHTML(
           </td>
           <td style="vertical-align: top; text-align: right; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-            <div style="width: 100px; height: 100px;"></div>
+            <div style="width: 90px; height: 70px;"></div>
           </td>
         </tr>
       </table>
@@ -215,13 +274,7 @@ export async function exportReportCards(
     const remark = remarksMap?.get(s.name);
     return generateReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, totalStudents, remark, logoUri, mandatorySubjects);
   }).join('');
-  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@page{size:A4;margin:15mm 18mm;}body{margin:0;padding:0;font-family:'Times New Roman',Times,serif;}@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
-  const blob = new Blob([fullHTML], { type: 'application/msword' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `report_cards_${term.replace(/\s+/g, '_')}.doc`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  printReportCards(content, `Report Cards ${term}`);
 }
 
 export function previewSeniorReportCard(
@@ -328,14 +381,14 @@ function generateJuniorReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; page-break-inside: avoid; mso-page-break-before: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
+    <div class="report-card" style="page-break-after: always; page-break-inside: avoid; width: 100%; max-width: 200mm; padding: 4mm; margin: 0 auto; font-family: 'Times New Roman', Times, serif; background: white; color: #000; box-sizing: border-box; font-size: 9.5pt; line-height: 1.15;">
       <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px;">
         <tr>
-          <td style="width: 120px; vertical-align: top; border: none; padding: 0;">
-            <img src="${logoUri || ''}" alt="School Logo" style="width: 120px; height: 120px;" />
+          <td style="width: 95px; vertical-align: top; border: none; padding: 0;">
+            <img src="${logoUri || ''}" alt="School Logo" style="width: 95px; height: 95px;" />
           </td>
           <td style="vertical-align: top; text-align: center; padding-top: 4px; border: none;">
-            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
+            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 16pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
@@ -344,9 +397,9 @@ function generateJuniorReportCardHTML(
         </tr>
       </table>
       <p style="text-align: center; font-size: 7.5pt; margin: 0 0 8px 0;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: <span style="color: #003399; text-decoration: underline;">stdominicsboys21@gmail.com</span></p>
-      <div style="border-top: 2px solid #000; margin-bottom: 12px;"></div>
-      <h2 style="font-weight: bold; text-align: center; margin: 0 0 14px 0; font-size: 14pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
-      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 10pt; margin-bottom: 10px;">
+      <div style="border-top: 2px solid #000; margin-bottom: 8px;"></div>
+      <h2 style="font-weight: bold; text-align: center; margin: 0 0 10px 0; font-size: 13pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
+      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 8px;">
         <tr><td style="width: 33%; padding: 2px 0; border: none;"><span style="font-weight: bold;">STUDENT NAME</span></td><td style="width: 34%; padding: 2px 0; border: none;"><span style="font-weight: bold;">CLASS</span></td><td style="width: 33%; padding: 2px 0; border: none; text-align: right;"><span style="font-weight: bold;">ENTRY RESULTS</span></td></tr>
         <tr><td style="padding: 2px 0; border: none;">${student.name.toUpperCase()}</td><td style="padding: 2px 0; border: none;">${className}</td><td style="padding: 2px 0; border: none; text-align: right;"></td></tr>
       </table>
@@ -387,7 +440,7 @@ function generateJuniorReportCardHTML(
           </tbody>
         </table>
       </div>
-      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 20px; font-size: 10pt;">
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 14px; font-size: 9.5pt;">
         <tr>
           <td style="vertical-align: top; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
@@ -395,7 +448,7 @@ function generateJuniorReportCardHTML(
           </td>
           <td style="vertical-align: top; text-align: right; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-            <div style="width: 100px; height: 100px;"></div>
+            <div style="width: 90px; height: 70px;"></div>
           </td>
         </tr>
       </table>
@@ -449,11 +502,5 @@ export async function exportJuniorReportCards(
     const remark = remarksMap?.get(s.name);
     return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, students.length, remark, logoUri, mandatorySubjects);
   }).join('');
-  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@page{size:A4;margin:15mm 18mm;}body{margin:0;padding:0;font-family:'Times New Roman',Times,serif;}@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
-  const blob = new Blob([fullHTML], { type: 'application/msword' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `junior_report_cards_${term.replace(/\s+/g, '_')}.doc`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  printReportCards(content, `Junior Report Cards ${term}`);
 }
