@@ -502,11 +502,5 @@ export async function exportJuniorReportCards(
     const remark = remarksMap?.get(s.name);
     return generateJuniorReportCardHTML(s, schoolName, term, className, teacherName, rankMap.get(s.name) || 0, students.length, remark, logoUri, mandatorySubjects);
   }).join('');
-  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Report Cards</title><style>@page{size:A4;margin:15mm 18mm;}body{margin:0;padding:0;font-family:'Times New Roman',Times,serif;}@media print{body{margin:0;padding:0}}</style></head><body>${content}</body></html>`;
-  const blob = new Blob([fullHTML], { type: 'application/msword' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `junior_report_cards_${term.replace(/\s+/g, '_')}.doc`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  printReportCards(content, `Junior Report Cards ${term}`);
 }
