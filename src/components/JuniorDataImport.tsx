@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Upload, FileText, ClipboardPaste, Loader2 } from 'lucide-react';
 import { JuniorStudentData, parseJuniorTableData, parseJuniorCSV } from '@/lib/juniorGrading';
 import { parseJuniorGrid } from '@/lib/juniorGrading';
-import { htmlTablesToGrids, detectTableFromGrid, detectedTableToStudents } from '@/lib/tableDetection';
+import { htmlTablesToGrids, detectTableFromGrid, detectedTableToStudents, gridHasFilledPoints, textHasFilledPoints, csvHasFilledPoints } from '@/lib/tableDetection';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -15,18 +15,18 @@ interface JuniorDataImportProps {
   onImport: (students: JuniorStudentData[]) => void;
 }
 
-const parseExcelData = (workbook: XLSX.WorkBook): JuniorStudentData[] => {
+const parseExcelData = (workbook: XLSX.WorkBook): { students: JuniorStudentData[]; pointsFilled: boolean } => {
   for (const sheetName of workbook.SheetNames) {
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' }) as any[][];
     const grid = data.map(row => (row || []).map(c => (c == null ? '' : String(c).trim())));
     const students = parseJuniorGrid(grid);
-    if (students.length > 0) return students;
+    if (students.length > 0) return { students, pointsFilled: gridHasFilledPoints(grid) };
   }
-  return [];
+  return { students: [], pointsFilled: false };
 };
 
-const parseDocx = async (buffer: ArrayBuffer): Promise<JuniorStudentData[]> => {
+const parseDocx = async (buffer: ArrayBuffer): Promise<{ students: JuniorStudentData[]; pointsFilled: boolean }> => {
   try {
     const html = await mammoth.convertToHtml({ arrayBuffer: buffer });
     const grids = htmlTablesToGrids(html.value);
@@ -34,14 +34,14 @@ const parseDocx = async (buffer: ArrayBuffer): Promise<JuniorStudentData[]> => {
       const t = detectTableFromGrid(g);
       if (t) {
         const students = detectedTableToStudents(t);
-        if (students.length) return students;
+        if (students.length) return { students, pointsFilled: t.pointsFilled };
       }
     }
   } catch {
     // fall through
   }
   const raw = await mammoth.extractRawText({ arrayBuffer: buffer });
-  return parseJuniorTableData(raw.value);
+  return { students: parseJuniorTableData(raw.value), pointsFilled: textHasFilledPoints(raw.value) };
 };
 
 export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
@@ -49,6 +49,12 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [alreadyCalculated, setAlreadyCalculated] = useState(false);
+
+  const notifyAlreadyCalculated = () => {
+    setAlreadyCalculated(true);
+    toast.success('ALREADY CALCULATED — import remaining tests to generate report cards');
+  };
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
@@ -56,22 +62,26 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
       const extension = file.name.split('.').pop()?.toLowerCase();
 
       let students: JuniorStudentData[] = [];
+      let pointsFilled = false;
       if (extension === 'xlsx' || extension === 'xls') {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'array' });
-        students = parseExcelData(workbook);
+        ({ students, pointsFilled } = parseExcelData(workbook));
       } else if (extension === 'docx') {
         const buffer = await file.arrayBuffer();
-        students = await parseDocx(buffer);
+        ({ students, pointsFilled } = await parseDocx(buffer));
       } else if (extension === 'csv') {
         const text = await file.text();
         students = parseJuniorCSV(text);
+        pointsFilled = csvHasFilledPoints(text);
       } else {
         const text = await file.text();
         students = parseJuniorTableData(text);
+        pointsFilled = textHasFilledPoints(text);
       }
 
       if (students.length > 0) {
+        if (pointsFilled) notifyAlreadyCalculated(); else setAlreadyCalculated(false);
         onImport(students);
         toast.success(`Imported ${students.length} students successfully`);
       } else {
@@ -95,10 +105,13 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
     if (!pastedData.trim()) return;
     // Detector handles pipe/tab/comma/multi-space uniformly.
     let students: JuniorStudentData[] = parseJuniorTableData(pastedData);
+    let pointsFilled = textHasFilledPoints(pastedData);
     if (students.length === 0 && pastedData.includes(',')) {
       students = parseJuniorCSV(pastedData);
+      pointsFilled = csvHasFilledPoints(pastedData);
     }
     if (students.length > 0) {
+      if (pointsFilled) notifyAlreadyCalculated(); else setAlreadyCalculated(false);
       onImport(students);
       setPastedData('');
       toast.success(`Imported ${students.length} students successfully`);
@@ -130,6 +143,13 @@ export const JuniorDataImport = ({ onImport }: JuniorDataImportProps) => {
           Import student scores from a file or paste data. Column headers determine subjects — use any names you want.
         </p>
       </div>
+
+      {alreadyCalculated && (
+        <div className="mb-4 rounded-md border border-green-600 bg-green-600/10 p-3">
+          <p className="font-bold text-green-500">ALREADY CALCULATED</p>
+          <p className="text-sm text-muted-foreground">Import remaining tests to generate report cards.</p>
+        </div>
+      )}
 
       <Tabs defaultValue="upload" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
