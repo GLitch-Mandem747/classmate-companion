@@ -17,6 +17,65 @@ async function getLogoDataUri(): Promise<string> {
 
 function getLogoUrl(): string { return '/images/school-logo.png'; }
 
+const REPORT_PAGE_CSS = `
+  @page { size: A4 portrait; margin: 10mm 12mm; }
+  html, body { margin: 0; padding: 0; font-family: 'Times New Roman', Times, serif; background: #fff; color: #000; }
+  .report-card {
+    width: 100%;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
+  }
+  .report-card:last-child { page-break-after: auto; break-after: auto; }
+  table { border-collapse: collapse; }
+  @media print {
+    html, body { width: 210mm; }
+    .report-card { page-break-inside: avoid; break-inside: avoid; }
+  }
+`;
+
+/**
+ * Open a printable window with the report cards and trigger the print dialog,
+ * where the user chooses "Save as PDF". Guarantees one report card per page.
+ */
+function printReportCards(content: string, title: string): void {
+  const fullHTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>${REPORT_PAGE_CSS}</style></head><body>${content}</body></html>`;
+  const win = window.open('', '_blank');
+  if (!win) {
+    // Popup blocked - fall back to an iframe print.
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument!;
+    doc.open();
+    doc.write(fullHTML);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => iframe.remove(), 60000);
+    }, 600);
+    return;
+  }
+  win.document.open();
+  win.document.write(fullHTML);
+  win.document.close();
+  const doPrint = () => {
+    win.focus();
+    win.print();
+  };
+  if (win.document.readyState === 'complete') setTimeout(doPrint, 400);
+  else win.addEventListener('load', () => setTimeout(doPrint, 400));
+}
+
 export interface TestData {
   name: string;
   results: StudentResult[];
