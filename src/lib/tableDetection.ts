@@ -146,11 +146,20 @@ export function detectTableFromGrid(rawGrid: string[][]): DetectedTable | null {
     nameIndex = bestCol === -1 ? 0 : bestCol;
   }
 
-  // Subject columns: any non-name column where ≥50% of data cells are numeric.
+  // Points / metadata column detection
+  const pointsIndex = headers.findIndex(h => POINTS_HEADER_ALIASES.includes(normalizeHeader(h)));
+  let pointsFilled = false;
+  if (pointsIndex !== -1) {
+    const filledCount = dataRows.filter(r => isNumericCell((r[pointsIndex] || '').trim())).length;
+    pointsFilled = filledCount > 0 && filledCount / dataRows.length >= 0.5;
+  }
+
+  // Subject columns: any non-name, non-metadata column where ≥50% of data cells are numeric.
   const subjectIndices: number[] = [];
   for (let c = 0; c < headers.length; c++) {
     if (c === nameIndex) continue;
     if (!headers[c]) continue;
+    if (META_HEADER_ALIASES.includes(normalizeHeader(headers[c]))) continue;
     let filled = 0;
     let numeric = 0;
     for (const row of dataRows) {
@@ -164,13 +173,30 @@ export function detectTableFromGrid(rawGrid: string[][]): DetectedTable | null {
 
   if (subjectIndices.length === 0) return null;
 
-  return { headers, rows: dataRows, nameIndex, subjectIndices };
+  return { headers, rows: dataRows, nameIndex, subjectIndices, pointsIndex, pointsFilled };
 }
 
 /** Detect a table from a plain-text paste. */
 export function detectTableFromText(text: string): DetectedTable | null {
   const grid = linesToGrid(text);
   return detectTableFromGrid(grid);
+}
+
+/** True when the source table already has a filled-in points/aggregate column. */
+export function gridHasFilledPoints(grid: string[][]): boolean {
+  return detectTableFromGrid(grid)?.pointsFilled ?? false;
+}
+
+export function textHasFilledPoints(text: string): boolean {
+  return detectTableFromText(text)?.pointsFilled ?? false;
+}
+
+export function csvHasFilledPoints(text: string): boolean {
+  const grid = text
+    .split(/\r?\n/)
+    .filter(l => l.trim())
+    .map(l => l.split(',').map(v => v.trim().replace(/^["']|["']$/g, '')));
+  return gridHasFilledPoints(grid);
 }
 
 /** Convert a DetectedTable to a generic { name, subjects, subjectNames } list. */
