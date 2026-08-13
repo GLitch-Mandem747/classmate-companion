@@ -284,12 +284,12 @@ const JuniorIndex = ({ onBack }: JuniorIndexProps) => {
                           return;
                         }
                         await exportJuniorReportCards(tests, "ST. DOMINIC'S BOYS SECONDARY SCHOOL", term, className, teacherName, approvedRemarks, mandatorySubjects);
-                        toast({ title: 'Report Cards Generated', description: 'Report cards have been downloaded.' });
+                        toast({ title: 'Report Cards Ready', description: 'A print window opened — choose "Save as PDF" to download.' });
                       }}
                       className="w-full sm:w-auto bg-green-700 hover:bg-green-800 text-white"
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Download Report Cards
+                      Download Report Cards (PDF)
                     </Button>
                     <ReportCardPreview
                       studentNames={latestResults.map(r => r.name)}
