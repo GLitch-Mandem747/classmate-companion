@@ -6,9 +6,20 @@ export interface DetectedTable {
   rows: string[][];
   nameIndex: number;
   subjectIndices: number[];
+  pointsIndex: number;
+  pointsFilled: boolean;
 }
 
 const NAME_HEADER_ALIASES = ['name', 'student', 'student name', 'learner', 'pupil', 'candidate', 'names', 'full name'];
+
+// Columns that are results/metadata, not subjects.
+const POINTS_HEADER_ALIASES = ['points', 'point', 'grade points', 'gradepoints', 'total points', 'aggregate', 'agg', 'pts'];
+const META_HEADER_ALIASES = [
+  ...POINTS_HEADER_ALIASES,
+  'rank', 'position', 'pos', 'position in class', 'total', 'sum', 'average', 'avg', 'mean', 'no', 'no.', '#', 'sn', 's/n', 'index',
+];
+
+const normalizeHeader = (h: string) => (h || '').toLowerCase().trim().replace(/\s+/g, ' ');
 
 const isNumericCell = (v: string) => {
   if (!v) return false;
