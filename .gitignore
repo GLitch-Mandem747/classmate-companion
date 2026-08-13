@@ -44,6 +44,7 @@ out/
 *.dmg
 *.AppImage
 *.blockmap
+electron/
 
 # Temporary files
 
@@ -55,4 +56,6 @@ out/
 
 Thumbs.db
 desktop.ini
+
+
 
