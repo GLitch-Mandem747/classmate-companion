@@ -387,14 +387,14 @@ function generateJuniorReportCardHTML(
   ).join('');
 
   return `
-    <div style="page-break-after: always; page-break-inside: avoid; mso-page-break-before: always; width: 210mm; min-height: 297mm; padding: 15mm 18mm; font-family: 'Times New Roman', Times, serif; background: white; color: #000; margin: 0 auto; box-sizing: border-box; font-size: 11pt; line-height: 1.3;">
+    <div class="report-card" style="page-break-after: always; page-break-inside: avoid; width: 100%; max-width: 200mm; padding: 4mm; margin: 0 auto; font-family: 'Times New Roman', Times, serif; background: white; color: #000; box-sizing: border-box; font-size: 9.5pt; line-height: 1.15;">
       <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 4px;">
         <tr>
-          <td style="width: 120px; vertical-align: top; border: none; padding: 0;">
-            <img src="${logoUri || ''}" alt="School Logo" style="width: 120px; height: 120px;" />
+          <td style="width: 95px; vertical-align: top; border: none; padding: 0;">
+            <img src="${logoUri || ''}" alt="School Logo" style="width: 95px; height: 95px;" />
           </td>
           <td style="vertical-align: top; text-align: center; padding-top: 4px; border: none;">
-            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 18pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
+            <h1 style="font-weight: bold; margin: 0 0 3px 0; font-size: 16pt; color: #003399;">ST. DOMINIC'S BOYS SECONDARY SCHOOL</h1>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FRANCISCAN MISSIONARY BROTHERS OF SERVICE (FMBS)</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt; font-weight: bold;">FR. DOMINIC LIM'S MEMORIAL SCHOOL</p>
             <p style="margin: 0 0 1px 0; font-size: 9pt;">P. O. BOX 110214,</p>
@@ -403,9 +403,9 @@ function generateJuniorReportCardHTML(
         </tr>
       </table>
       <p style="text-align: center; font-size: 7.5pt; margin: 0 0 8px 0;">CONTACT: Secretary – 0950 087253, Accountant – 0765 649965, Email: <span style="color: #003399; text-decoration: underline;">stdominicsboys21@gmail.com</span></p>
-      <div style="border-top: 2px solid #000; margin-bottom: 12px;"></div>
-      <h2 style="font-weight: bold; text-align: center; margin: 0 0 14px 0; font-size: 14pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
-      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 10pt; margin-bottom: 10px;">
+      <div style="border-top: 2px solid #000; margin-bottom: 8px;"></div>
+      <h2 style="font-weight: bold; text-align: center; margin: 0 0 10px 0; font-size: 13pt; text-decoration: underline; letter-spacing: 1px;">SCHOOL REPORT</h2>
+      <table style="width: 100%; border: none; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 8px;">
         <tr><td style="width: 33%; padding: 2px 0; border: none;"><span style="font-weight: bold;">STUDENT NAME</span></td><td style="width: 34%; padding: 2px 0; border: none;"><span style="font-weight: bold;">CLASS</span></td><td style="width: 33%; padding: 2px 0; border: none; text-align: right;"><span style="font-weight: bold;">ENTRY RESULTS</span></td></tr>
         <tr><td style="padding: 2px 0; border: none;">${student.name.toUpperCase()}</td><td style="padding: 2px 0; border: none;">${className}</td><td style="padding: 2px 0; border: none; text-align: right;"></td></tr>
       </table>
@@ -446,7 +446,7 @@ function generateJuniorReportCardHTML(
           </tbody>
         </table>
       </div>
-      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 20px; font-size: 10pt;">
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 14px; font-size: 9.5pt;">
         <tr>
           <td style="vertical-align: top; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 4px 0;">PRINCIPAL</p>
@@ -454,7 +454,7 @@ function generateJuniorReportCardHTML(
           </td>
           <td style="vertical-align: top; text-align: right; border: none; padding: 0;">
             <p style="font-weight: bold; margin: 0 0 8px 0;">SCHOOL STAMP</p>
-            <div style="width: 100px; height: 100px;"></div>
+            <div style="width: 90px; height: 70px;"></div>
           </td>
         </tr>
       </table>
