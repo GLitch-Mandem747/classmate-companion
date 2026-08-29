@@ -60,6 +60,7 @@ const Auth = () => {
   const {
     user,
     accessProfile,
+    accessProfileLoading,
     signUp,
     signIn,
     signInWithGoogle,
@@ -84,10 +85,27 @@ const Auth = () => {
 
 
 
+
   useEffect(()=>{
 
 
     if(authLoading || !user){
+      return;
+    }
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Do not redirect while the real
+     * user_access profile is still loading.
+     *
+     * Otherwise an admin can temporarily
+     * receive the safe "user" fallback and
+     * get sent to the normal dashboard.
+     */
+
+    if(accessProfileLoading){
       return;
     }
 
@@ -121,6 +139,7 @@ const Auth = () => {
   },[
     user,
     accessProfile,
+    accessProfileLoading,
     authLoading,
     navigate
   ]);
@@ -195,8 +214,7 @@ const Auth = () => {
 
 
       const {
-        error,
-        accessProfile
+        error
       } =
       await signIn(
         email,
@@ -245,7 +263,6 @@ const Auth = () => {
 
           });
 
-
         }
 
 
@@ -255,39 +272,13 @@ const Auth = () => {
 
 
 
-
-
-      if(!accessProfile){
-
-
-        toast({
-
-          title:"Setting up account",
-
-          description:
-          "Please wait while your account is created.",
-
-        });
-
-
-        return;
-
-      }
-
-
-
-
-
-      if(!accessProfile.is_active){
-
-
-        navigate("/access-denied");
-
-        return;
-
-      }
-
-
+      /*
+       * Do not navigate here.
+       *
+       * AuthProvider is loading the real access
+       * profile. The useEffect above will route
+       * the user once the role is known.
+       */
 
       toast({
 
@@ -297,21 +288,6 @@ const Auth = () => {
         "Signed in successfully.",
 
       });
-
-
-
-
-      if(accessProfile.role==="admin"){
-
-        navigate("/admin-dashboard");
-
-      }
-      else{
-
-        navigate("/");
-
-      }
-
 
     };
 
@@ -459,7 +435,6 @@ const Auth = () => {
 
 
 
-
   const handleGoogleSignIn =
     async()=>{
 
@@ -500,7 +475,27 @@ const Auth = () => {
 
 
 
+
   if(authLoading){
+
+    return(
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+
+      </div>
+
+    );
+
+  }
+
+
+
+
+
+
+  if(user && accessProfileLoading){
 
     return(
 

@@ -7,9 +7,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, accessProfile, loading } = useAuth();
+  const {
+    user,
+    accessProfile,
+    accessProfileLoading,
+    loading
+  } = useAuth();
 
-  if (loading) {
+  if (loading || (user && accessProfileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -21,7 +26,11 @@ const ProtectedRoute = ({ requireAdmin = false }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!accessProfile || !accessProfile.is_active) {
+  if (!accessProfile) {
+    return <Navigate to="/access-denied" replace />;
+  }
+
+  if (!accessProfile.is_active) {
     return <Navigate to="/access-denied" replace />;
   }
 

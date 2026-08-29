@@ -1,21 +1,43 @@
 import { StudentResult, GRADE_SCALE, getGrade, SUBJECT_LABELS, getAllSubjectEntries } from './grading';
 import { JuniorStudentResult } from './juniorGrading';
+import schoolLogoUrl from '@/assets/school-logo.png';
+
+const REPORT_CARD_FOOTER = "Produced by SOFTWAREARMY's Classmate Companion";
 
 let cachedLogoDataUri: string | null = null;
+let logoLoadPromise: Promise<string> | null = null;
+
 async function getLogoDataUri(): Promise<string> {
   if (cachedLogoDataUri) return cachedLogoDataUri;
-  try {
-    const response = await fetch('/images/school-logo.png');
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => { cachedLogoDataUri = reader.result as string; resolve(cachedLogoDataUri); };
-      reader.readAsDataURL(blob);
-    });
-  } catch { return ''; }
+  if (!logoLoadPromise) {
+    logoLoadPromise = fetch(schoolLogoUrl)
+      .then((response) => response.blob())
+      .then(
+        (blob) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              cachedLogoDataUri = reader.result as string;
+              resolve(cachedLogoDataUri);
+            };
+            reader.readAsDataURL(blob);
+          })
+      )
+      .catch(() => '');
+  }
+  return logoLoadPromise;
 }
 
-function getLogoUrl(): string { return '/images/school-logo.png'; }
+/** Preload logo as base64 so preview iframes and print windows can display it reliably. */
+export function ensureLogoLoaded(): Promise<string> {
+  return getLogoDataUri();
+}
+
+function getLogoUri(): string {
+  return cachedLogoDataUri || '';
+}
+
+ensureLogoLoaded();
 
 const REPORT_PAGE_CSS = `
   @page { size: A4 portrait; margin: 10mm 12mm; }
@@ -247,6 +269,7 @@ function generateReportCardHTML(
           </td>
         </tr>
       </table>
+      <p style="text-align: center; font-size: 7pt; color: #555; margin: 10px 0 0 0; padding-top: 6px; border-top: 1px solid #ccc;">${REPORT_CARD_FOOTER}</p>
     </div>`;
 }
 
@@ -298,7 +321,7 @@ export function previewSeniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), mandatorySubjects);
+  return generateReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUri(), mandatorySubjects);
 }
 
 // ---- Junior exports ----
@@ -452,6 +475,7 @@ function generateJuniorReportCardHTML(
           </td>
         </tr>
       </table>
+      <p style="text-align: center; font-size: 7pt; color: #555; margin: 10px 0 0 0; padding-top: 6px; border-top: 1px solid #ccc;">${REPORT_CARD_FOOTER}</p>
     </div>`;
 }
 
@@ -476,7 +500,7 @@ export function previewJuniorReportCard(
   const student = studentMap.get(studentName);
   if (!student) return '<p>Student not found</p>';
   const remark = remarksMap?.get(studentName);
-  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUrl(), mandatorySubjects);
+  return generateJuniorReportCardHTML(student, schoolName, term, className, teacherName, rankMap.get(studentName) || 0, students.length, remark, getLogoUri(), mandatorySubjects);
 }
 
 export async function exportJuniorReportCards(

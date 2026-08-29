@@ -44,6 +44,8 @@ interface AuthContextType {
 
   accessProfile: UserAccessProfile | null;
 
+  accessProfileLoading: boolean;
+
   loading: boolean;
 
 
@@ -90,26 +92,43 @@ async (
   userId: string
 ): Promise<UserAccessProfile | null> => {
 
+  try {
 
-  const {
-    data,
-    error,
-  } =
-  await supabase
-    .from("user_access")
-    .select("*")
-    .eq(
-      "user_id",
-      userId
-    )
-    .maybeSingle();
+    const {
+      data,
+      error,
+    } =
+    await supabase
+      .from("user_access")
+      .select("*")
+      .eq(
+        "user_id",
+        userId
+      )
+      .maybeSingle();
 
 
 
-  if(error){
+    if(error){
+
+      console.error(
+        "Error loading user access profile:",
+        error
+      );
+
+      return null;
+
+    }
+
+
+
+    return data as UserAccessProfile | null;
+
+  }
+  catch(error){
 
     console.error(
-      "Error loading user access profile:",
+      "Unexpected error loading user access profile:",
       error
     );
 
@@ -117,11 +136,36 @@ async (
 
   }
 
-
-
-  return data as UserAccessProfile | null;
-
 };
+
+
+
+
+
+
+
+
+
+const buildFallbackAccessProfile =
+(user: User): UserAccessProfile => ({
+
+  id: user.id,
+
+  user_id: user.id,
+
+  email: user.email ?? "",
+
+  role: "user",
+
+  is_active: true,
+
+  created_at: new Date().toISOString(),
+
+  updated_at: new Date().toISOString(),
+
+});
+
+
 
 
 
@@ -132,65 +176,77 @@ async (
 const createUserAccessIfMissing =
 async (
   user: User
-): Promise<UserAccessProfile | null> => {
+): Promise<UserAccessProfile> => {
 
-
-  const existing =
-    await getAccessProfileByUserId(
-      user.id
+  const fallbackProfile =
+    buildFallbackAccessProfile(
+      user
     );
 
 
+  try {
 
-  if(existing){
+    const existing =
+      await getAccessProfileByUserId(
+        user.id
+      );
 
-    return existing;
+
+    if(existing){
+
+      return existing;
+
+    }
+
+
+    const {
+      data,
+      error,
+    } =
+    await supabase
+      .from("user_access")
+      .insert({
+
+        user_id: user.id,
+
+        email: user.email ?? "",
+
+        role: "user",
+
+        is_active: true,
+
+      })
+      .select()
+      .single();
+
+
+    if(error){
+
+      console.error(
+        "Failed creating user access:",
+        error
+      );
+
+      return fallbackProfile;
+
+    }
+
+
+    return (
+      data as UserAccessProfile
+    ) ?? fallbackProfile;
 
   }
-
-
-
-
-  const {
-    data,
-    error,
-  } =
-  await supabase
-    .from("user_access")
-    .insert({
-
-      user_id:user.id,
-
-      email:user.email ?? "",
-
-      role:"user",
-
-      is_active:true,
-
-    })
-    .select()
-    .single();
-
-
-
-
-
-  if(error){
+  catch(error){
 
     console.error(
-      "Failed creating user access:",
+      "Unexpected error creating user access:",
       error
     );
 
-    return null;
+    return fallbackProfile;
 
   }
-
-
-
-
-
-  return data as UserAccessProfile;
 
 };
 
@@ -222,8 +278,17 @@ export const AuthProvider =
     useState<UserAccessProfile | null>(null);
 
 
+  const [
+    accessProfileLoading,
+    setAccessProfileLoading
+  ] =
+    useState(true);
+
+
   const [loading,setLoading] =
     useState(true);
+
+
 
 
 
@@ -234,25 +299,56 @@ export const AuthProvider =
   const refreshAccessProfile =
   async()=>{
 
-
     if(!user){
 
       setAccessProfile(null);
+
+      setAccessProfileLoading(false);
 
       return;
 
     }
 
 
+    setAccessProfileLoading(true);
 
-    const profile =
-      await createUserAccessIfMissing(
+
+    const fallbackProfile =
+      buildFallbackAccessProfile(
         user
       );
 
 
+    try {
 
-    setAccessProfile(profile);
+      const profile =
+        await createUserAccessIfMissing(
+          user
+        );
+
+
+      setAccessProfile(
+        profile
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "Error refreshing access profile:",
+        error
+      );
+
+      setAccessProfile(
+        fallbackProfile
+      );
+
+    }
+    finally{
+
+      setAccessProfileLoading(false);
+
+    }
 
   };
 
@@ -266,59 +362,147 @@ export const AuthProvider =
 
   useEffect(()=>{
 
+    let mounted = true;
+
 
     const loadSession =
     async()=>{
 
+      try {
 
-      const {
-        data:{
-          session
+        const {
+          data:{
+            session
+          }
+        } =
+        await supabase.auth.getSession();
+
+
+        if(!mounted){
+
+          return;
+
         }
-      } =
-      await supabase.auth.getSession();
 
 
+        const currentUser =
+          session?.user ?? null;
 
 
-      const currentUser =
-        session?.user ?? null;
+        setSession(
+          session
+        );
+
+        setUser(
+          currentUser
+        );
 
 
+        if(currentUser){
 
-      setSession(session);
-
-      setUser(currentUser);
-
+          setAccessProfileLoading(true);
 
 
+          const fallbackProfile =
+            buildFallbackAccessProfile(
+              currentUser
+            );
 
-      if(currentUser){
 
-        const profile =
-          await createUserAccessIfMissing(
-            currentUser
+          /*
+           * Keep the fallback internally,
+           * but do not allow routing to make
+           * decisions until the real profile
+           * has been checked.
+           */
+
+          setAccessProfile(
+            fallbackProfile
           );
 
 
-        setAccessProfile(profile);
+          void createUserAccessIfMissing(
+            currentUser
+          )
+            .then((profile)=>{
+
+              if(mounted){
+
+                setAccessProfile(
+                  profile
+                );
+
+              }
+
+            })
+            .catch((error)=>{
+
+              console.error(
+                "Access profile unavailable:",
+                error
+              );
+
+              if(mounted){
+
+                setAccessProfile(
+                  fallbackProfile
+                );
+
+              }
+
+            })
+            .finally(()=>{
+
+              if(mounted){
+
+                setAccessProfileLoading(
+                  false
+                );
+
+              }
+
+            });
+
+        }
+        else{
+
+          setAccessProfile(null);
+
+          setAccessProfileLoading(false);
+
+        }
 
       }
+      catch(error){
 
+        console.error(
+          "Error loading Supabase session:",
+          error
+        );
 
+        if(mounted){
 
-      setLoading(false);
+          setAccessProfile(null);
+
+          setAccessProfileLoading(false);
+
+        }
+
+      }
+      finally{
+
+        if(mounted){
+
+          setLoading(false);
+
+        }
+
+      }
 
     };
 
 
-
-
     loadSession();
-
-
-
-
 
 
     const {
@@ -327,54 +511,116 @@ export const AuthProvider =
       }
     } =
     supabase.auth.onAuthStateChange(
-      async(
-        _event,
+      (
+        event,
         newSession
       )=>{
+
+        if(!mounted){
+
+          return;
+
+        }
+
+
+        console.log(
+          "Supabase auth event:",
+          event
+        );
 
 
         const currentUser =
           newSession?.user ?? null;
 
 
+        setSession(
+          newSession
+        );
 
-        setSession(newSession);
-
-        setUser(currentUser);
-
-
+        setUser(
+          currentUser
+        );
 
 
         if(currentUser){
 
+          setAccessProfileLoading(true);
 
-          const profile =
-            await createUserAccessIfMissing(
+
+          const fallbackProfile =
+            buildFallbackAccessProfile(
               currentUser
             );
 
 
-          setAccessProfile(profile);
+          setAccessProfile(
+            fallbackProfile
+          );
 
+
+          /*
+           * Do not await this operation inside
+           * the Supabase auth callback.
+           */
+
+          void createUserAccessIfMissing(
+            currentUser
+          )
+            .then((profile)=>{
+
+              if(mounted){
+
+                setAccessProfile(
+                  profile
+                );
+
+              }
+
+            })
+            .catch((error)=>{
+
+              console.error(
+                "Access profile unavailable after auth event:",
+                error
+              );
+
+              if(mounted){
+
+                setAccessProfile(
+                  fallbackProfile
+                );
+
+              }
+
+            })
+            .finally(()=>{
+
+              if(mounted){
+
+                setAccessProfileLoading(
+                  false
+                );
+
+              }
+
+            });
 
         }
         else{
 
-
           setAccessProfile(null);
 
+          setAccessProfileLoading(false);
 
         }
-
-
 
       }
     );
 
 
-
-
     return()=>{
+
+      mounted = false;
 
       subscription.unsubscribe();
 
@@ -397,20 +643,14 @@ export const AuthProvider =
     password:string
   )=>{
 
-
     const normalizedEmail =
       email
         .trim()
         .toLowerCase();
 
 
-
-
     const redirectUrl =
       `${window.location.origin}/#/email-verified`;
-
-
-
 
 
     const {
@@ -430,9 +670,6 @@ export const AuthProvider =
       },
 
     });
-
-
-
 
 
     return {
@@ -460,13 +697,16 @@ export const AuthProvider =
     password:string
   )=>{
 
-
     const normalizedEmail =
       email
         .trim()
         .toLowerCase();
 
 
+    console.log(
+      "Attempting Supabase sign-in for:",
+      normalizedEmail
+    );
 
 
     const {
@@ -482,10 +722,22 @@ export const AuthProvider =
     });
 
 
-
-
-
     if(error){
+
+      console.error(
+        "SUPABASE SIGN-IN ERROR:",
+        error
+      );
+
+      console.error(
+        "SUPABASE SIGN-IN ERROR CODE:",
+        error.code
+      );
+
+      console.error(
+        "SUPABASE SIGN-IN ERROR STATUS:",
+        error.status
+      );
 
       return {
 
@@ -499,10 +751,7 @@ export const AuthProvider =
     }
 
 
-
-
-
-    if(!data.user){
+    if(!data.user || !data.session){
 
       return {
 
@@ -518,30 +767,90 @@ export const AuthProvider =
     }
 
 
+    /*
+     * Authentication succeeded.
+     */
+
+    setSession(
+      data.session
+    );
+
+    setUser(
+      data.user
+    );
 
 
+    /*
+     * Mark the access profile as loading.
+     * Routing must wait until this is finished.
+     */
+
+    setAccessProfileLoading(
+      true
+    );
 
 
-    const profile =
-      await createUserAccessIfMissing(
+    const fallbackProfile =
+      buildFallbackAccessProfile(
         data.user
       );
 
 
+    setAccessProfile(
+      fallbackProfile
+    );
 
-    setAccessProfile(profile);
+
+    /*
+     * Load the real access profile.
+     *
+     * Authentication itself is already successful.
+     */
+
+    void createUserAccessIfMissing(
+      data.user
+    )
+      .then((profile)=>{
+
+        setAccessProfile(
+          profile
+        );
+
+      })
+      .catch((error)=>{
+
+        console.error(
+          "Access profile unavailable after sign-in:",
+          error
+        );
+
+        setAccessProfile(
+          fallbackProfile
+        );
+
+      })
+      .finally(()=>{
+
+        setAccessProfileLoading(
+          false
+        );
+
+      });
 
 
-
+    /*
+     * Do not return the fallback as the final
+     * routing decision. The Auth component will
+     * wait for accessProfileLoading to finish.
+     */
 
     return {
 
       error:null,
 
-      accessProfile:profile,
+      accessProfile:null,
 
     };
-
 
   };
 
@@ -555,7 +864,6 @@ export const AuthProvider =
 
   const signInWithGoogle =
   async()=>{
-
 
     const {
       error
@@ -574,9 +882,6 @@ export const AuthProvider =
     });
 
 
-
-
-
     return {
 
       error:
@@ -585,7 +890,6 @@ export const AuthProvider =
         : null,
 
     };
-
 
   };
 
@@ -600,9 +904,7 @@ export const AuthProvider =
   const signOut =
   async()=>{
 
-
     await supabase.auth.signOut();
-
 
 
     setUser(null);
@@ -611,6 +913,7 @@ export const AuthProvider =
 
     setAccessProfile(null);
 
+    setAccessProfileLoading(false);
 
   };
 
@@ -633,6 +936,8 @@ export const AuthProvider =
         session,
 
         accessProfile,
+
+        accessProfileLoading,
 
         loading,
 
@@ -669,12 +974,10 @@ export const AuthProvider =
 export const useAuth =
 ()=>{
 
-
   const context =
     useContext(
       AuthContext
     );
-
 
 
   if(!context){
@@ -684,7 +987,6 @@ export const useAuth =
     );
 
   }
-
 
 
   return context;

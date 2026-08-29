@@ -1,7 +1,7 @@
 {
   "name": "classmate-companion",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
@@ -47,6 +47,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "electron-updater": "^6.8.9",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
@@ -88,7 +89,7 @@
     "vite": "^5.4.19",
     "wait-on": "^7.2.0"
   },
-    "build": {
+  "build": {
     "appId": "com.softwarearmy.classmatecompanion",
     "productName": "Classmate Companion",
     "directories": {
@@ -115,6 +116,13 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "GLitch-Mandem747",
+        "repo": "classmate-companion"
+      }
+    ]
   }
 }

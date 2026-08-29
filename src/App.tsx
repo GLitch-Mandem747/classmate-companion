@@ -13,6 +13,7 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 import { AuthProvider } from "./hooks/useAuth";
+import { UpdateNotifier } from "./components/UpdateNotifier";
 
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
 
           <Sonner />
 
+          <UpdateNotifier />
 
           <Routes>
 
